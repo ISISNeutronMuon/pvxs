@@ -87,7 +87,7 @@ void MappingInfo::updateNsecMask(dbCommon *prec)
         }
     }
 }
-#if 1//USER_ALARM_MSG
+#if USER_ALARM_MSG
 void MappingInfo::updateUserAlarmMsg(dbCommon *prec)
 {
     assert(prec);

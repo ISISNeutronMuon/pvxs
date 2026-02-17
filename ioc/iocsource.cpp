@@ -233,7 +233,7 @@ void getTimeAlarm(dbChannel* pChannel,
         } else
 #endif
         {
-            #if 1//USER_ALARM_MSG
+            #if USER_ALARM_MSG
             if(!info.alarmMsg.empty()) {
                 node["alarm.message"] = meta.status ? info.alarmMsg : "";
             }

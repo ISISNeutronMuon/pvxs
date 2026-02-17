@@ -42,7 +42,7 @@ struct MappingInfo {
 
     void updateNsecMask(dbCommon *prec);
     
-    #if 1//USER_ALARM_MSG
+    #if USER_ALARM_MSG
     std::string alarmMsg;
     void updateUserAlarmMsg(dbCommon *prec);
     #endif
