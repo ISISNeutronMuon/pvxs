@@ -233,6 +233,12 @@ void getTimeAlarm(dbChannel* pChannel,
         } else
 #endif
         {
+            #if 1//USER_ALARM_MSG
+            if(!info.alarmMsg.empty()) {
+                node["alarm.message"] = meta.status ? info.alarmMsg : "";
+            }
+            else
+            #endif
             node["alarm.message"] = meta.status && stsmsg ? stsmsg : "";
         }
     } // DBE_ALARM
@@ -249,7 +255,7 @@ void getTimeAlarm(dbChannel* pChannel,
     }
 #endif
 }
-
+ 
 static
 void getProperties(dbChannel* pChannel, db_field_log *pfl, Value& node)
 {

@@ -87,6 +87,16 @@ void MappingInfo::updateNsecMask(dbCommon *prec)
         }
     }
 }
+#if 1//USER_ALARM_MSG
+void MappingInfo::updateUserAlarmMsg(dbCommon *prec)
+{
+    assert(prec);
+    DBEntry ent(prec);
+    if(auto val = ent.info("Q:alarm:msg")) {
+        alarmMsg = val;
+    }
+} 
+#endif
 } // namespace ioc
 
 } // namespace pvxs
