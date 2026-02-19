@@ -229,7 +229,11 @@ void getTimeAlarm(dbChannel* pChannel,
         }
 #if DBR_AMSG
         if((options & DBR_AMSG) && meta.amsg[0]) {
+            #if USER_ALARM_MSG
+            node["alarm.message"] = meta.status ? meta.amsg : "";
+            #else//USER_ALARM_MSG
             node["alarm.message"] = meta.amsg;
+            #endif//USER_ALARM_MSG
         } else
 #endif
         {
@@ -335,6 +339,9 @@ void IOCSource::get(Value& node, // node within top level structure addressed by
     }
 
     if((info.type==MappingInfo::Scalar || info.type==MappingInfo::Meta) && (change & (UpdateType::Value | UpdateType::Alarm))) {
+        #if 1//USER_ALARM_MSG
+        info.updateUserAlarmMsg(dbChannelRecord(pChannel));
+        #endif
         getTimeAlarm(pChannel, pDbFieldLog, node, info, change);
     }
 
