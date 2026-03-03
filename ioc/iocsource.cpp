@@ -155,6 +155,59 @@ void getArrayValue(dbChannel* pChannel,
     }
 }
 
+static const char* getInfoAlarmString(dbChannel* pChannel, const char* info_field) {
+    dbCommon* prec = dbChannelRecord(pChannel);
+    DBEntry entry(prec);
+    const char* alarm_msg = nullptr;
+
+    // Note entry.info() is performing a search each time. In production code this
+    // will need to be cached or the performance otherwise improved.
+    if (auto val = entry.info(info_field))
+        alarm_msg = val;
+    else if (auto val = entry.info("PVXS:DEFAULT_MSG"))
+        alarm_msg = val;
+
+    return alarm_msg;
+}
+
+struct ValueTimeAlarm {
+    DBRstatus
+    DBRamsg
+    DBRtime
+    DBRutag
+};
+
+static const char* getAlarmMessage(dbChannel* pChannel, ValueTimeAlarm& meta, Value& node) {
+    const char* stsmsg = nullptr;
+    switch(meta.status) {
+        case NO_ALARM:
+            break;
+        case HIHI_ALARM:
+            stsmsg = getInfoAlarmString(pChannel, "PVXS:HIHI_MSG");
+            break;
+        case HIGH_ALARM:
+            stsmsg = getInfoAlarmString(pChannel, "PVXS:HIGH_MSG");
+            break;
+        case LOLO_ALARM:
+            stsmsg = getInfoAlarmString(pChannel, "PVXS:LOLO_MSG");
+            break;
+        case LOW_ALARM:
+            stsmsg = getInfoAlarmString(pChannel, "PVXS:LOW_MSG");
+            break;
+        case STATE_ALARM:
+            auto index = node["value.index"].as<int32_t>();
+            if (index>=0 && index<=16) {
+                char buf[32];
+                snprintf(buf, sizeof(buf), "PVXS:STATE%d_MSG", index);
+                stsmsg = getInfoAlarmString(pChannel, buf);
+            }
+    }
+    if (!stsmsg)
+        stsmsg = epicsAlarmConditionStrings[meta.status];
+
+    return stsmsg;
+}
+
 // update timeStamp.* and maybe alarm.*
 static
 void getTimeAlarm(dbChannel* pChannel,
@@ -165,12 +218,7 @@ void getTimeAlarm(dbChannel* pChannel,
 {
     long nReq = 0;
     long options = DBR_STATUS | DBR_AMSG | DBR_TIME | DBR_UTAG;
-    struct ValueTimeAlarm {
-        DBRstatus
-        DBRamsg
-        DBRtime
-        DBRutag
-    } meta;
+    ValueTimeAlarm meta;
 
     DBErrorMessage dbErrorMessage(dbChannelGet(pChannel, dbChannelFinalFieldType(pChannel),
                                                &meta, &options, &nReq, pfl));
@@ -223,7 +271,7 @@ void getTimeAlarm(dbChannel* pChannel,
             }
 
             if(meta.status < ALARM_NSTATUS)
-                stsmsg = epicsAlarmConditionStrings[meta.status];
+                stsmsg = getAlarmMessage(pChannel, meta, node);
             node["alarm.status"] = status;
             node["alarm.severity"] = meta.severity;
         }
