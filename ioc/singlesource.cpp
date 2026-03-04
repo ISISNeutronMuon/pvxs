@@ -56,7 +56,9 @@ void subscriptionCallback(SingleSourceSubscriptionCtx* subscriptionContext,
         {
             DBLocker F(dbChannelRecord(subscriptionContext->info->chan));
             // TODO MappingInfo::nsecMask
-            IOCSource::get(currentValue, MappingInfo(), Value(), change, pChannel, pDbFieldLog);
+            auto mappingInfo = MappingInfo();
+            mappingInfo.infoFields = subscriptionContext->info->infoFields; // copy info fields from subscription context
+            IOCSource::get(currentValue, mappingInfo, Value(), change, pChannel, pDbFieldLog);
         }
 
         // Make sure that the initial subscription update has occurred on both channels before continuing

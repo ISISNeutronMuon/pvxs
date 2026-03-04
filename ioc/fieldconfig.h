@@ -11,7 +11,7 @@
 #define PVXS_FIELDCONFIG_H
 
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <limits>
 
 #include <dbChannel.h>
@@ -41,6 +41,9 @@ struct MappingInfo {
     Value cval;
 
     void updateNsecMask(dbCommon *prec);
+
+    std::unordered_map<std::string, const char*> infoFields;
+    void updateInfoFields(dbCommon *prec);
 };
 
 /**

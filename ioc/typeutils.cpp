@@ -87,6 +87,24 @@ void MappingInfo::updateNsecMask(dbCommon *prec)
         }
     }
 }
+
+void MappingInfo::updateInfoFields(dbCommon *prec)
+{
+    printf("Constructing cache of info fields for record %s\n", prec->name);
+    assert(prec);
+    DBEntry ent(prec);
+
+    if (!dbFirstInfo(ent)) {
+        auto name = std::string(ent->pinfonode->name);
+        infoFields[name] = ent->pinfonode->string;
+    }
+
+    while (!dbNextInfo(ent)) {
+        auto name = std::string(ent->pinfonode->name);
+        infoFields[name] = ent->pinfonode->string;
+    }
+}
+
 } // namespace ioc
 
 } // namespace pvxs

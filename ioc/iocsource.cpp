@@ -158,7 +158,8 @@ void getArrayValue(dbChannel* pChannel,
 /* Get the alarm message string based on an info field in the record */
 static 
 const char* getInfoAlarmString(const dbChannel* pChannel, 
-                               const char* const info_field) 
+                               const char* const info_field,
+                               const MappingInfo& info) 
 {
     dbCommon* prec = dbChannelRecord(pChannel);
     DBEntry entry(prec);
@@ -166,10 +167,15 @@ const char* getInfoAlarmString(const dbChannel* pChannel,
 
     // Note entry.info() is performing a search each time. In production code this
     // will need to be cached or the performance otherwise improved.
-    if (auto val = entry.info(info_field))
-        alarm_msg = val;
-    else if (auto val = entry.info("PVXS:AMSG_DEFAULT"))
-        alarm_msg = val;
+
+    auto val = info.infoFields.find(std::string(info_field));
+    if (val != info.infoFields.end())
+        alarm_msg = val->second;
+    else {
+        auto val = info.infoFields.find("PVXS:AMSG_DEFAULT");
+        if (val != info.infoFields.end())
+            alarm_msg = val->second;
+    }
 
     return alarm_msg;
 }
@@ -177,7 +183,9 @@ const char* getInfoAlarmString(const dbChannel* pChannel,
 /* Set the alarm message string based on the channel's status */
 static 
 const char* getAlarmMessage(const dbChannel* pChannel, 
-                            epicsUInt16 status, const Value& node) 
+                            epicsUInt16 status, 
+                            const MappingInfo& info,
+                            const Value& node) 
 {
     const char* stsmsg = nullptr;
 
@@ -185,16 +193,16 @@ const char* getAlarmMessage(const dbChannel* pChannel,
         case NO_ALARM:
             break;
         case HIHI_ALARM:
-            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_HIHI");
+            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_HIHI", info);
             break;
         case HIGH_ALARM:
-            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_HIGH");
+            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_HIGH", info);
             break;
         case LOLO_ALARM:
-            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_LOLO");
+            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_LOLO", info);
             break;
         case LOW_ALARM:
-            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_LOW");
+            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_LOW", info);
             break;
         case STATE_ALARM:
             auto index = (uint32_t) node["value.index"].as<int32_t>();
@@ -202,7 +210,7 @@ const char* getAlarmMessage(const dbChannel* pChannel,
             if (index>=0 && index<no_choices) {
                 char buf[32];
                 epicsSnprintf(buf, sizeof(buf), "PVXS:AMSG_STATE%d", index);
-                stsmsg = getInfoAlarmString(pChannel, buf);
+                stsmsg = getInfoAlarmString(pChannel, buf, info);
             }
     }
 
@@ -280,7 +288,7 @@ void getTimeAlarm(dbChannel* pChannel,
             }
 
             if(meta.status < ALARM_NSTATUS)
-                stsmsg = getAlarmMessage(pChannel, meta.status, node);
+                stsmsg = getAlarmMessage(pChannel, meta.status, info, node);
             node["alarm.status"] = status;
             node["alarm.severity"] = meta.severity;
         }
