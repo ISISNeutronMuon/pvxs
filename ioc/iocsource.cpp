@@ -155,7 +155,7 @@ void getArrayValue(dbChannel* pChannel,
     }
 }
 
-static const char* getInfoAlarmString(dbChannel* pChannel, const char* info_field) {
+static const char* getInfoAlarmString(const dbChannel* pChannel, const char* const info_field) {
     dbCommon* prec = dbChannelRecord(pChannel);
     DBEntry entry(prec);
     const char* alarm_msg = nullptr;
@@ -164,35 +164,28 @@ static const char* getInfoAlarmString(dbChannel* pChannel, const char* info_fiel
     // will need to be cached or the performance otherwise improved.
     if (auto val = entry.info(info_field))
         alarm_msg = val;
-    else if (auto val = entry.info("PVXS:DEFAULT_MSG"))
+    else if (auto val = entry.info("PVXS:AMSG_DEFAULT"))
         alarm_msg = val;
 
     return alarm_msg;
 }
 
-struct ValueTimeAlarm {
-    DBRstatus
-    DBRamsg
-    DBRtime
-    DBRutag
-};
-
-static const char* getAlarmMessage(dbChannel* pChannel, ValueTimeAlarm& meta, Value& node) {
+static const char* getAlarmMessage(const dbChannel* pChannel, epicsUInt16 status, const Value& node) {
     const char* stsmsg = nullptr;
-    switch(meta.status) {
+    switch(status) {
         case NO_ALARM:
             break;
         case HIHI_ALARM:
-            stsmsg = getInfoAlarmString(pChannel, "PVXS:HIHI_MSG");
+            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_HIHI");
             break;
         case HIGH_ALARM:
-            stsmsg = getInfoAlarmString(pChannel, "PVXS:HIGH_MSG");
+            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_HIGH");
             break;
         case LOLO_ALARM:
-            stsmsg = getInfoAlarmString(pChannel, "PVXS:LOLO_MSG");
+            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_LOLO");
             break;
         case LOW_ALARM:
-            stsmsg = getInfoAlarmString(pChannel, "PVXS:LOW_MSG");
+            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_LOW");
             break;
         case STATE_ALARM:
             auto index = node["value.index"].as<int32_t>();
@@ -203,7 +196,7 @@ static const char* getAlarmMessage(dbChannel* pChannel, ValueTimeAlarm& meta, Va
             }
     }
     if (!stsmsg)
-        stsmsg = epicsAlarmConditionStrings[meta.status];
+        stsmsg = epicsAlarmConditionStrings[status];
 
     return stsmsg;
 }
@@ -218,7 +211,12 @@ void getTimeAlarm(dbChannel* pChannel,
 {
     long nReq = 0;
     long options = DBR_STATUS | DBR_AMSG | DBR_TIME | DBR_UTAG;
-    ValueTimeAlarm meta;
+    struct ValueTimeAlarm {
+        DBRstatus
+        DBRamsg
+        DBRtime
+        DBRutag
+    } meta;
 
     DBErrorMessage dbErrorMessage(dbChannelGet(pChannel, dbChannelFinalFieldType(pChannel),
                                                &meta, &options, &nReq, pfl));
@@ -271,7 +269,7 @@ void getTimeAlarm(dbChannel* pChannel,
             }
 
             if(meta.status < ALARM_NSTATUS)
-                stsmsg = getAlarmMessage(pChannel, meta, node);
+                stsmsg = getAlarmMessage(pChannel, meta.status, node);
             node["alarm.status"] = status;
             node["alarm.severity"] = meta.severity;
         }
