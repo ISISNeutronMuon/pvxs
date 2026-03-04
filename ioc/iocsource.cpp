@@ -188,10 +188,11 @@ static const char* getAlarmMessage(const dbChannel* pChannel, epicsUInt16 status
             stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_LOW");
             break;
         case STATE_ALARM:
-            auto index = node["value.index"].as<int32_t>();
-            if (index>=0 && index<=16) {
+            auto index = (uint32_t) node["value.index"].as<int32_t>();
+            auto no_choices = (node["value.choices"].as<shared_array<const std::string>>()).size();
+            if (index>=0 && index<no_choices) {
                 char buf[32];
-                snprintf(buf, sizeof(buf), "PVXS:STATE%d_MSG", index);
+                epicsSnprintf(buf, sizeof(buf), "PVXS:AMSG_STATE%d", index);
                 stsmsg = getInfoAlarmString(pChannel, buf);
             }
     }
@@ -374,10 +375,6 @@ void IOCSource::get(Value& node, // node within top level structure addressed by
         getProperties(pChannel, pDbFieldLog, node);
     }
 
-    if((info.type==MappingInfo::Scalar || info.type==MappingInfo::Meta) && (change & (UpdateType::Value | UpdateType::Alarm))) {
-        getTimeAlarm(pChannel, pDbFieldLog, node, info, change);
-    }
-
     if((change & UpdateType::Value) && info.type!=MappingInfo::Meta) {
         Value value;
         if(info.type==MappingInfo::Scalar) {
@@ -394,6 +391,10 @@ void IOCSource::get(Value& node, // node within top level structure addressed by
         } else {
             getArrayValue(pChannel, pDbFieldLog, value);
         }
+    }
+
+    if((info.type==MappingInfo::Scalar || info.type==MappingInfo::Meta) && (change & (UpdateType::Value | UpdateType::Alarm))) {
+        getTimeAlarm(pChannel, pDbFieldLog, node, info, change);
     }
 }
 
