@@ -155,7 +155,11 @@ void getArrayValue(dbChannel* pChannel,
     }
 }
 
-static const char* getInfoAlarmString(const dbChannel* pChannel, const char* const info_field) {
+/* Get the alarm message string based on an info field in the record */
+static 
+const char* getInfoAlarmString(const dbChannel* pChannel, 
+                               const char* const info_field) 
+{
     dbCommon* prec = dbChannelRecord(pChannel);
     DBEntry entry(prec);
     const char* alarm_msg = nullptr;
@@ -170,8 +174,13 @@ static const char* getInfoAlarmString(const dbChannel* pChannel, const char* con
     return alarm_msg;
 }
 
-static const char* getAlarmMessage(const dbChannel* pChannel, epicsUInt16 status, const Value& node) {
+/* Set the alarm message string based on the channel's status */
+static 
+const char* getAlarmMessage(const dbChannel* pChannel, 
+                            epicsUInt16 status, const Value& node) 
+{
     const char* stsmsg = nullptr;
+
     switch(status) {
         case NO_ALARM:
             break;
@@ -196,6 +205,7 @@ static const char* getAlarmMessage(const dbChannel* pChannel, epicsUInt16 status
                 stsmsg = getInfoAlarmString(pChannel, buf);
             }
     }
+
     if (!stsmsg)
         stsmsg = epicsAlarmConditionStrings[status];
 
