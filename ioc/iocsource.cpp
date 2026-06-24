@@ -175,12 +175,14 @@ const char* getInfoAlarmString(const char* const info_field,
 }
 
 /* Set the alarm message string based on the channel's status */
-static 
-const char* getAlarmMessage(const dbChannel* pChannel, 
-                            epicsUInt16 status, 
+static
+const char* getAlarmMessage(epicsUInt16 status,
                             const MappingInfo& info,
-                            const Value& node) 
+                            const Value& node)
 {
+    if (info.infoFields.empty())
+        return epicsAlarmConditionStrings[status];
+
     const char* stsmsg = nullptr;
 
     switch(status) {
@@ -201,7 +203,7 @@ const char* getAlarmMessage(const dbChannel* pChannel,
         case STATE_ALARM: {
             auto index = node["value.index"].as<int32_t>();
             auto no_choices = (node["value.choices"].as<shared_array<const std::string>>()).size();
-            if (index >= 0 && (uint32_t)index < no_choices) {
+            if (index >= 0 && static_cast<uint32_t>(index) < no_choices) {
                 char buf[32];
                 epicsSnprintf(buf, sizeof(buf), "PVXS:AMSG_STATE%d", index);
                 stsmsg = getInfoAlarmString(buf, info);
@@ -289,7 +291,7 @@ void getTimeAlarm(dbChannel* pChannel,
             }
 
             if(meta.status < ALARM_NSTATUS)
-                stsmsg = getAlarmMessage(pChannel, meta.status, info, node);
+                stsmsg = getAlarmMessage(meta.status, info, node);
             node["alarm.status"] = status;
             node["alarm.severity"] = meta.severity;
         }
