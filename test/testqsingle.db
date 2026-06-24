@@ -65,3 +65,26 @@ record(longin, "test:nsec") {
     field(VAL , "100")
     info(Q:time:tag, "nsec:lsb:8")
 }
+record(ai, "test:amsg") {
+    field(HHSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(LLSV, "MAJOR")
+    field(HIHI, "90")
+    field(HIGH, "80")
+    field(LOW,  "20")
+    field(LOLO, "10")
+    field(HOPR, "100")
+    info(PVXS:AMSG_HIHI,    "Too high!")
+    info(PVXS:AMSG_HIGH,    "Getting high")
+    info(PVXS:AMSG_LOLO,    "Value is critically low - this message exceeds forty chars")
+    info(PVXS:AMSG_DEFAULT, "Something is wrong")
+}
+record(ai, "test:amsg:default") {
+    field(HHSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(HIHI, "90")
+    field(HIGH, "80")
+    field(HOPR, "100")
+    info(PVXS:AMSG_DEFAULT, "Default message")
+}

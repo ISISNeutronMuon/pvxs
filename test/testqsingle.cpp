@@ -998,11 +998,48 @@ void testiocsh(TestClient& ctxt)
     }
 }
 
+void testAlarmMessage()
+{
+    testDiag("%s", __func__);
+    TestClient ctxt;
+
+    // specific PVXS:AMSG_HIHI message
+    testdbPutFieldOk("test:amsg", DBR_DOUBLE, 95.0);
+    auto val = ctxt.get("test:amsg").exec()->wait(5.0);
+    testStrEq(val["alarm.message"].as<std::string>(), "Too high!");
+
+    // specific PVXS:AMSG_HIGH message
+    testdbPutFieldOk("test:amsg", DBR_DOUBLE, 85.0);
+    val = ctxt.get("test:amsg").exec()->wait(5.0);
+    testStrEq(val["alarm.message"].as<std::string>(), "Getting high");
+
+    // no alarm — message is empty
+    testdbPutFieldOk("test:amsg", DBR_DOUBLE, 50.0);
+    val = ctxt.get("test:amsg").exec()->wait(5.0);
+    testStrEq(val["alarm.message"].as<std::string>(), "");
+
+    // PVXS:AMSG_LOLO with a message longer than the 40-char DB_AMSG_SIZE limit
+    testdbPutFieldOk("test:amsg", DBR_DOUBLE, 5.0);
+    val = ctxt.get("test:amsg").exec()->wait(5.0);
+    testStrEq(val["alarm.message"].as<std::string>(),
+              "Value is critically low - this message exceeds forty chars");
+
+    // LOW_ALARM with no specific PVXS:AMSG_LOW — falls back to PVXS:AMSG_DEFAULT
+    testdbPutFieldOk("test:amsg", DBR_DOUBLE, 15.0);
+    val = ctxt.get("test:amsg").exec()->wait(5.0);
+    testStrEq(val["alarm.message"].as<std::string>(), "Something is wrong");
+
+    // PVXS:AMSG_DEFAULT fallback when no specific key is set
+    testdbPutFieldOk("test:amsg:default", DBR_DOUBLE, 95.0);
+    val = ctxt.get("test:amsg:default").exec()->wait(5.0);
+    testStrEq(val["alarm.message"].as<std::string>(), "Default message");
+}
+
 } // namespace
 
 MAIN(testqsingle)
 {
-    testPlan(113);
+    testPlan(125);
     testSetup();
     pvxs::logger_config_env();
     generalTimeRegisterCurrentProvider("test", 1, &testTimeCurrent);
@@ -1034,6 +1071,7 @@ MAIN(testqsingle)
 #endif
         ioc.init();
         testGetScalar();
+        testAlarmMessage();
         testLongString();
         testGetArray();
         testPut();

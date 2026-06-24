@@ -15,6 +15,7 @@
 #include <limits>
 
 #include <dbChannel.h>
+#include <dbStaticLib.h>
 
 #include <pvxs/data.h>
 
@@ -42,7 +43,7 @@ struct MappingInfo {
 
     void updateNsecMask(dbCommon *prec);
 
-    std::unordered_map<std::string, const char*> infoFields;
+    std::unordered_map<std::string, dbInfoNode*> infoFields;
     void updateInfoFields(dbCommon *prec);
 };
 

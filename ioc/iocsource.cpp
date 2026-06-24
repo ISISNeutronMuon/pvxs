@@ -164,11 +164,11 @@ const char* getInfoAlarmString(const char* const info_field,
 
     auto val = info.infoFields.find(info_field);
     if (val != info.infoFields.end())
-        alarm_msg = val->second;
+        alarm_msg = val->second->string;
     else {
         auto def = info.infoFields.find("PVXS:AMSG_DEFAULT");
         if (def != info.infoFields.end())
-            alarm_msg = def->second;
+            alarm_msg = def->second->string;
     }
 
     return alarm_msg;
@@ -209,6 +209,8 @@ const char* getAlarmMessage(const dbChannel* pChannel,
             break;
         }
         default:
+            // Do not set the default alarm string for READ_ALARM, WRITE_ALARM, COMM_ALARM, TIMEOUT_ALARM, etc. 
+            // These will fall back to the default EPICS Base amsg string instead.
             break;
     }
 
