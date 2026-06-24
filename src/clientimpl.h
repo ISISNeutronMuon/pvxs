@@ -50,6 +50,8 @@ struct OperationBase : public Operation
     uint32_t ioid = 0;
     Value result;
     bool done = false;
+    // state of handoff from user thread to worker
+    bool onWorker = false;
     std::shared_ptr<ResultWaiter> waiter;
 
     OperationBase(operation_t op, const evbase& loop, const std::string& name);
@@ -69,6 +71,7 @@ struct RequestFL {
     std::vector<Value> unused;
 
     explicit RequestFL(size_t limit) :limit(limit) {}
+    ~RequestFL();
 };
 
 struct RequestInfo {

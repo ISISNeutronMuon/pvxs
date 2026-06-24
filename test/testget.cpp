@@ -25,6 +25,16 @@
 namespace {
 using namespace pvxs;
 
+void testEmptyName() {
+    client::Config conf;
+    conf.autoAddrList = false;
+    auto ctx(conf.build());
+    testThrowsMatch<std::logic_error>("Empty channel name",
+                                      [&](){
+                                          ctx.get("").exec();
+                                      });
+}
+
 struct Tester {
     Value initial;
     server::SharedPV mbox;
@@ -300,6 +310,7 @@ struct Tester {
         cli.hurryUp();
 
         testOk1(!info->done.wait(2.1));
+        cli.close();
     }
 
     void orphan()
@@ -591,10 +602,11 @@ void testServerClose()
 
 MAIN(testget)
 {
-    testPlan(67);
+    testPlan(68);
     testSetup();
     logger_config_env();
     const bool canIPv6 = pvxs::impl::evsocket::canIPv6;
+    testEmptyName();
     Tester().testConnector();
     Tester().testWaiter();
     Tester(AF_INET).loopback();

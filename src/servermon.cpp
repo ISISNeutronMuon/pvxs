@@ -83,21 +83,7 @@ struct MonitorOp final : public ServerOp
         {
             // based on operation state, yes
             server->acceptor_loop.dispatch([op](){
-                auto ch(op->chan.lock());
-                if(!ch)
-                    return;
-                auto conn(ch->conn.lock());
-                if(!conn || conn->state==ConnBase::Disconnected)
-                    return;
-
-                auto bev(conn->connection());
-
-                if(bev && evbuffer_get_length(bufferevent_get_output(bev)) < conn->tcp_tx_limit) {
-                    doReply(op);
-                } else {
-                    // connection TX queue is too full
-                    conn->backlog.emplace_back([op]() { doReply(op); });
-                }
+                doReply(op);
             });
 
             op->scheduled = true;
@@ -111,6 +97,7 @@ struct MonitorOp final : public ServerOp
         }
     }
 
+    // on tcp worker thread
     static
     void doReply(const std::shared_ptr<MonitorOp>& self)
     {
@@ -118,16 +105,30 @@ struct MonitorOp final : public ServerOp
         if(!ch)
             return;
         auto conn = ch->conn.lock();
-        if(!conn || !conn->connection())
+        if(!conn || !conn->connection() || conn->state==ConnBase::Disconnected)
             return;
 
         Guard G(self->lock);
+
         self->scheduled = false;
 
         log_debug_printf(connio, "%s state=%d\n", __func__, self->state);
 
         if(self->state==Dead)
             return;
+
+        // check connection TX buffer level
+        {
+            auto bev = conn->connection();
+            if(evbuffer_get_length(bufferevent_get_output(bev)) >= conn->tcp_tx_limit) {
+                log_debug_printf(connio, "Client %s IOID %u TX queue is too full defer to backlog\n",
+                                 conn->peerName.c_str(), unsigned(self->ioid));
+
+                conn->backlog.emplace_back([self]() { doReply(self); });
+                self->scheduled = true;
+                return;
+            }
+        }
 
         uint8_t subcmd = 0u;
         if(self->state==Creating) {
@@ -311,7 +312,7 @@ struct ServerMonitorControl : public server::MonitorControlOp
         stat.maxQueue = mon->maxQueue;
         stat.limitQueue = mon->limit;
         stat.window = mon->window;
-        stat.nQueue = mon->nSquash;
+        stat.nSquash = mon->nSquash;
 
         if(reset)
             mon->maxQueue = mon->nSquash = 0u;
@@ -409,7 +410,7 @@ struct ServerMonitorSetup : public server::MonitorSetupOp
             if(auto oper = op.lock()) {
                 if(oper->state!=ServerOp::Creating)
                     return;
-                oper->type = type;
+                oper->type = std::move(type);
                 oper->pvMask = std::move(mask);
                 ret.reset(new ServerMonitorControl(this, server, _name, oper));
                 MonitorOp::doReply(oper);
@@ -560,7 +561,7 @@ void ServerConn::handle_MONITOR()
                     if(sval.size()>1 && sval.back()=='%') {
                         try {
                             auto percent = parseTo<double>(sval.substr(0, sval.size()-1u));
-                            op->ackAt = std::max(0.0, std::min(percent, 100.0)) * op->limit;
+                            op->ackAt = std::max(0.0, std::min(percent, 100.0)) / 100.0 * op->limit;
                         }catch(std::exception& e){
                             logRemote(ioid, Level::Crit,
                                       SB()<<"Unable to parse% "<<pvRequest.nameOf(ackAny)<<" : "<<sval<<" : "<<e.what());

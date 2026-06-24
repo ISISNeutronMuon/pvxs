@@ -21,6 +21,12 @@ typedef epicsGuard<epicsMutex> Guard;
 DEFINE_LOGGER(monevt, "pvxs.client.monitor");
 DEFINE_LOGGER(io, "pvxs.client.io");
 
+RequestFL::~RequestFL()
+{
+    Guard G(lock);
+    unused.clear(); // pacify valgrind with free() under lock
+}
+
 namespace {
 struct Entry {
     Value val;
@@ -78,7 +84,7 @@ struct SubscriptionImpl final : public OperationBase, public Subscription
                  event_new(loop.base, -1, EV_TIMEOUT, &tickAckS, this))
     {}
     virtual ~SubscriptionImpl() {
-        if(loop.assertInRunningLoop())
+        if(onWorker && loop.assertInRunningLoop())
             _cancel(true);
     }
 
@@ -494,7 +500,42 @@ void Connection::handle_MONITOR()
                        peerName.c_str(), unsigned(ioid));
             return;
         }
+    }
 
+    // Validate the message against operation state before decoding payload.
+
+    std::shared_ptr<OperationBase> op;
+    SubscriptionImpl* mon = nullptr;
+    if(M.good() && info) {
+        op = info->handle.lock();
+        if(!op) {
+            // assume op has already sent CMD_DESTROY_REQUEST
+            log_debug_printf(io, "Server %s ignoring stale cmd%02x ioid %u\n",
+                             peerName.c_str(), CMD_MONITOR, unsigned(ioid));
+            return;
+        }
+
+        if(uint8_t(op->op)!=CMD_MONITOR) {
+            // peer mixes up IOID and operation type
+            M.fault(__FILE__, __LINE__);
+
+        } else {
+            mon = static_cast<SubscriptionImpl*>(op.get());
+
+            // check that subcmd is as expected based on operation state
+            if((mon->state==SubscriptionImpl::Creating) && init) {
+
+            } else if((mon->state==SubscriptionImpl::Idle) && !init) {
+
+            } else if((mon->state==SubscriptionImpl::Running) && !init) {
+
+            } else {
+                M.fault(__FILE__, __LINE__);
+            }
+        }
+    }
+
+    if(M.good()) {
         if(!sts.isSuccess()) {
 
         } else if(init) {
@@ -502,6 +543,8 @@ void Connection::handle_MONITOR()
             // initialize info->fl later, with access to queueSize
 
         } else if(!final || !M.empty()) {
+            if(!info->fl)
+                throw std::logic_error("clientmon after INIT w/o FL");
 
             // Take from free-list of pre-allocated Value
             Value raw;
@@ -511,11 +554,10 @@ void Connection::handle_MONITOR()
                 if(!info->fl->unused.empty()) {
                     raw = std::move(info->fl->unused.back());
                     info->fl->unused.pop_back();
-
-                } else {
-                    raw = info->prototype.cloneEmpty();
                 }
             }
+            if(!raw)
+                raw = info->prototype.cloneEmpty();
             // Wrap Value for automatic return to our free-list
             {
                 std::weak_ptr<RequestFL> wfl(info->fl);
@@ -556,39 +598,6 @@ void Connection::handle_MONITOR()
                     servSquash = true;
                     break;
                 }
-            }
-        }
-    }
-
-    // validate received message against operation state
-
-    std::shared_ptr<OperationBase> op;
-    SubscriptionImpl* mon = nullptr;
-    if(M.good() && info) {
-        op = info->handle.lock();
-        if(!op) {
-            // assume op has already sent CMD_DESTROY_REQUEST
-            log_debug_printf(io, "Server %s ignoring stale cmd%02x ioid %u\n",
-                             peerName.c_str(), CMD_MONITOR, unsigned(ioid));
-            return;
-        }
-
-        if(uint8_t(op->op)!=CMD_MONITOR) {
-            // peer mixes up IOID and operation type
-            M.fault(__FILE__, __LINE__);
-
-        } else {
-            mon = static_cast<SubscriptionImpl*>(op.get());
-
-            // check that subcmd is as expected based on operation state
-            if((mon->state==SubscriptionImpl::Creating) && init) {
-
-            } else if((mon->state==SubscriptionImpl::Idle) && !init) {
-
-            } else if((mon->state==SubscriptionImpl::Running) && !init) {
-
-            } else {
-                M.fault(__FILE__, __LINE__);
             }
         }
     }
@@ -777,7 +786,7 @@ std::shared_ptr<Subscription> MonitorBuilder::exec()
             try {
                 auto percent = parseTo<double>(sval.substr(0, sval.size()-1u));
                 if(percent>0.0 && percent<=100.0) {
-                    op->ackAt = uint32_t(percent * op->queueSize);
+                    op->ackAt = uint32_t(percent / 100.0 * op->queueSize);
                 } else {
                     throw std::invalid_argument("not in range (0%, 100%]");
                 }
@@ -821,6 +830,7 @@ std::shared_ptr<Subscription> MonitorBuilder::exec()
     auto server(std::move(_server));
     context->tcp_loop.dispatch([op, context, server]() {
         // on worker
+        op->onWorker = true;
 
         try {
             op->chan = Channel::build(context, op->channelName, server);
