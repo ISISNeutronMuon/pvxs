@@ -156,25 +156,19 @@ void getArrayValue(dbChannel* pChannel,
 }
 
 /* Get the alarm message string based on an info field in the record */
-static 
-const char* getInfoAlarmString(const dbChannel* pChannel, 
-                               const char* const info_field,
-                               const MappingInfo& info) 
+static
+const char* getInfoAlarmString(const char* const info_field,
+                               const MappingInfo& info)
 {
-    dbCommon* prec = dbChannelRecord(pChannel);
-    DBEntry entry(prec);
     const char* alarm_msg = nullptr;
 
-    // Note entry.info() is performing a search each time. In production code this
-    // will need to be cached or the performance otherwise improved.
-
-    auto val = info.infoFields.find(std::string(info_field));
+    auto val = info.infoFields.find(info_field);
     if (val != info.infoFields.end())
         alarm_msg = val->second;
     else {
-        auto val = info.infoFields.find("PVXS:AMSG_DEFAULT");
-        if (val != info.infoFields.end())
-            alarm_msg = val->second;
+        auto def = info.infoFields.find("PVXS:AMSG_DEFAULT");
+        if (def != info.infoFields.end())
+            alarm_msg = def->second;
     }
 
     return alarm_msg;
@@ -193,27 +187,32 @@ const char* getAlarmMessage(const dbChannel* pChannel,
         case NO_ALARM:
             break;
         case HIHI_ALARM:
-            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_HIHI", info);
+            stsmsg = getInfoAlarmString("PVXS:AMSG_HIHI", info);
             break;
         case HIGH_ALARM:
-            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_HIGH", info);
+            stsmsg = getInfoAlarmString("PVXS:AMSG_HIGH", info);
             break;
         case LOLO_ALARM:
-            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_LOLO", info);
+            stsmsg = getInfoAlarmString("PVXS:AMSG_LOLO", info);
             break;
         case LOW_ALARM:
-            stsmsg = getInfoAlarmString(pChannel, "PVXS:AMSG_LOW", info);
+            stsmsg = getInfoAlarmString("PVXS:AMSG_LOW", info);
             break;
-        case STATE_ALARM:
-            auto index = (uint32_t) node["value.index"].as<int32_t>();
+        case STATE_ALARM: {
+            auto index = node["value.index"].as<int32_t>();
             auto no_choices = (node["value.choices"].as<shared_array<const std::string>>()).size();
-            if (index>=0 && index<no_choices) {
+            if (index >= 0 && (uint32_t)index < no_choices) {
                 char buf[32];
                 epicsSnprintf(buf, sizeof(buf), "PVXS:AMSG_STATE%d", index);
-                stsmsg = getInfoAlarmString(pChannel, buf, info);
+                stsmsg = getInfoAlarmString(buf, info);
             }
+            break;
+        }
+        default:
+            break;
     }
 
+    // Fallback chain: specific info field -> PVXS:AMSG_DEFAULT -> EPICS condition string
     if (!stsmsg)
         stsmsg = epicsAlarmConditionStrings[status];
 
