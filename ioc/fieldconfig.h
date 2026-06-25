@@ -48,6 +48,7 @@ struct MappingInfo {
     std::vector<std::pair<const char*, dbInfoNode*>> infoFields;
     void updateInfoFields(dbCommon *prec);
     const char* findAlarmMsg(const char* key) const;
+    static void populateInfoFieldsCache();
 };
 
 /**

@@ -9,6 +9,7 @@
 
 #include <string.h>
 #include <algorithm>
+#include <unordered_map>
 
 #include <pvxs/source.h>
 #include <pvxs/log.h>
@@ -21,6 +22,17 @@
 #include "typeutils.h"
 
 DEFINE_LOGGER(_log, "pvxs.ioc.db");
+
+namespace {
+
+struct InfoCache {
+    std::vector<std::pair<const char*, dbInfoNode*>> fields;
+    const char* defaultMsg = nullptr;
+};
+
+std::unordered_map<dbCommon*, InfoCache> s_infoCache;
+
+} // namespace
 
 namespace pvxs {
 
@@ -101,31 +113,55 @@ void MappingInfo::updateNsecMask(dbCommon *prec)
  *
  * @param prec the record whose info nodes are to be cached
  */
-void MappingInfo::updateInfoFields(dbCommon *prec)
+static InfoCache& buildAndCache(dbCommon* prec)
 {
-    assert(prec);
+    InfoCache& cached = s_infoCache[prec];
     DBEntry ent(prec);
 
-    // Create a sorted vector of all info fields whose names begin with "Q:"
     for (auto status = dbFirstInfo(ent); !status; status = dbNextInfo(ent)) {
         if (strncmp(ent->pinfonode->name, "Q:", 2) == 0)
-            infoFields.emplace_back(ent->pinfonode->name, ent->pinfonode);
+            cached.fields.emplace_back(ent->pinfonode->name, ent->pinfonode);
     }
-    std::sort(infoFields.begin(), infoFields.end(),
+    std::sort(cached.fields.begin(), cached.fields.end(),
               [](const std::pair<const char*, dbInfoNode*>& a,
                  const std::pair<const char*, dbInfoNode*>& b) {
                   return strcmp(a.first, b.first) < 0;
               });
 
-    // Find the default alarm message, if any, and store it in defaultAlarmMsg
     auto cmp = [](const std::pair<const char*, dbInfoNode*>& entry, const char* key) {
         return strcmp(entry.first, key) < 0;
     };
-    auto def = std::lower_bound(infoFields.begin(), infoFields.end(), "Q:DEFAULT_AMSG", cmp);
-    if (def != infoFields.end() && strcmp(def->first, "Q:DEFAULT_AMSG") == 0)
-        defaultAlarmMsg = def->second->string;
+    auto def = std::lower_bound(cached.fields.begin(), cached.fields.end(), "Q:DEFAULT_AMSG", cmp);
+    if (def != cached.fields.end() && strcmp(def->first, "Q:DEFAULT_AMSG") == 0)
+        cached.defaultMsg = def->second->string;
 
+    return cached;
+}
+
+void MappingInfo::updateInfoFields(dbCommon *prec)
+{
+    assert(prec);
+
+    auto it = s_infoCache.find(prec);
+    const InfoCache& cached = (it != s_infoCache.end()) ? it->second : buildAndCache(prec);
+
+    infoFields = cached.fields;
+    defaultAlarmMsg = cached.defaultMsg;
     log_debug_printf(_log, "updateInfoFields: %s (%zu fields)\n", prec->name, infoFields.size());
+}
+
+void MappingInfo::populateInfoFieldsCache()
+{
+    s_infoCache.clear();  // discard any stale entries from a previous IOC run
+
+    DBEntry ent;
+    for (long status = dbFirstRecordType(ent); !status; status = dbNextRecordType(ent)) {
+        for (status = dbFirstRecord(ent); !status; status = dbNextRecord(ent)) {
+            buildAndCache(static_cast<dbCommon*>(ent->precnode->precord));
+        }
+    }
+
+    log_debug_printf(_log, "populateInfoFieldsCache: cached %zu records\n", s_infoCache.size());
 }
 
 const char* MappingInfo::findAlarmMsg(const char* key) const

@@ -33,6 +33,7 @@
 #include "iocshcommand.h"
 #include "utilpvt.h"
 #include "qsrvpvt.h"
+#include "fieldconfig.h"
 
 #ifdef USE_QSRV_SINGLE
 #  include <dbUnitTest.h>
@@ -357,6 +358,7 @@ void pvxsInitHook(initHookState theInitHookState) noexcept {
 #ifdef USE_PVA_LINKS
         linkGlobal_t::init();
 #endif
+        ioc::MappingInfo::populateInfoFieldsCache();
         addSingleSrc();
         addGroupSrc();
         break;
