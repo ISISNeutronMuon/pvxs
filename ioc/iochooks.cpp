@@ -324,6 +324,10 @@ void pvxsInitHook(initHookState theInitHookState) noexcept {
 #endif
     case initHookAtBeginning:
         dbRegisterQSRV2();
+        // Must run before processGroups() (initHookAfterInitDatabase) so that
+        // dbInfoNode* pointers cached from a previous IOC run are discarded
+        // before any MappingInfo attempts to read them.
+        ioc::MappingInfo::clearQInfoFieldsCache();
         break;
     case initHookAfterCaLinkInit:
 #ifdef USE_PVA_LINKS
@@ -358,7 +362,7 @@ void pvxsInitHook(initHookState theInitHookState) noexcept {
 #ifdef USE_PVA_LINKS
         linkGlobal_t::init();
 #endif
-        ioc::MappingInfo::populateInfoFieldsCache();
+        ioc::MappingInfo::populateQInfoFieldsCache();
         addSingleSrc();
         addGroupSrc();
         break;

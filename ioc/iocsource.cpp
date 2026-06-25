@@ -160,40 +160,37 @@ const char* getAlarmMessage(epicsUInt16 status,
                             const MappingInfo& info,
                             const Value& node)
 {
-    if (info.infoFields.empty())
+    if (status == NO_ALARM || info.qInfoFields.empty())
         return epicsAlarmConditionStrings[status];
 
     const char* stsmsg = nullptr;
 
     switch(status) {
-        case NO_ALARM:
-            break;
-        case HIHI_ALARM:
-            stsmsg = info.findAlarmMsg("Q:HIHI_AMSG");
-            break;
-        case HIGH_ALARM:
-            stsmsg = info.findAlarmMsg("Q:HIGH_AMSG");
-            break;
-        case LOLO_ALARM:
-            stsmsg = info.findAlarmMsg("Q:LOLO_AMSG");
-            break;
-        case LOW_ALARM:
-            stsmsg = info.findAlarmMsg("Q:LOW_AMSG");
-            break;
-        case STATE_ALARM: {
-            auto index = node["value.index"].as<int32_t>();
-            auto no_choices = (node["value.choices"].as<shared_array<const std::string>>()).size();
-            if (index >= 0 && static_cast<uint32_t>(index) < no_choices) {
-                char buf[32];
-                epicsSnprintf(buf, sizeof(buf), "Q:STATE%d_AMSG", index);
-                stsmsg = info.findAlarmMsg(buf);
-            }
-            break;
+    case HIHI_ALARM:
+        stsmsg = info.findQInfoValue("Q:HIHI_AMSG");
+        break;
+    case HIGH_ALARM:
+        stsmsg = info.findQInfoValue("Q:HIGH_AMSG");
+        break;
+    case LOLO_ALARM:
+        stsmsg = info.findQInfoValue("Q:LOLO_AMSG");
+        break;
+    case LOW_ALARM:
+        stsmsg = info.findQInfoValue("Q:LOW_AMSG");
+        break;
+    case STATE_ALARM: {
+        auto index = node["value.index"].as<int32_t>();
+        if (index >= 0) {
+            char buf[32];
+            epicsSnprintf(buf, sizeof(buf), "Q:STATE%d_AMSG", index);
+            stsmsg = info.findQInfoValue(buf);
         }
-        default:
-            // Do not set the default alarm string for READ_ALARM, WRITE_ALARM, COMM_ALARM, TIMEOUT_ALARM, etc. 
-            // These will fall back to the default EPICS Base amsg string instead.
-            break;
+        break;
+    }
+    default:
+        // Do not set the default alarm string for READ_ALARM, WRITE_ALARM, COMM_ALARM, TIMEOUT_ALARM, etc.
+        // These will fall back to the default EPICS Base amsg string instead.
+        break;
     }
 
     // Fallback chain: specific info field -> Q:DEFAULT_AMSG -> EPICS condition string

@@ -105,11 +105,11 @@ void MappingInfo::updateNsecMask(dbCommon *prec)
 }
 
 /**
- * Populate the infoFields cache from the info nodes of the given record.
+ * Populate the qInfoFields cache from the info nodes of the given record.
  *
  * Only info fields whose names begin with the "Q:" prefix are stored.
  * All other info fields are ignored. Subsequent code (e.g. alarm message
- * lookup) must therefore only query infoFields for Q:-prefixed keys.
+ * lookup) must therefore only query qInfoFields for Q:-prefixed keys.
  *
  * @param prec the record whose info nodes are to be cached
  */
@@ -138,22 +138,25 @@ static InfoCache& buildAndCache(dbCommon* prec)
     return cached;
 }
 
-void MappingInfo::updateInfoFields(dbCommon *prec)
+void MappingInfo::updateQInfoFields(dbCommon *prec)
 {
     assert(prec);
 
     auto it = s_infoCache.find(prec);
     const InfoCache& cached = (it != s_infoCache.end()) ? it->second : buildAndCache(prec);
 
-    infoFields = cached.fields;
+    qInfoFields = cached.fields;
     defaultAlarmMsg = cached.defaultMsg;
-    log_debug_printf(_log, "updateInfoFields: %s (%zu fields)\n", prec->name, infoFields.size());
+    log_debug_printf(_log, "updateQInfoFields: %s (%zu fields)\n", prec->name, qInfoFields.size());
 }
 
-void MappingInfo::populateInfoFieldsCache()
+void MappingInfo::clearQInfoFieldsCache()
 {
-    s_infoCache.clear();  // discard any stale entries from a previous IOC run
+    s_infoCache.clear();
+}
 
+void MappingInfo::populateQInfoFieldsCache()
+{
     DBEntry ent;
     for (long status = dbFirstRecordType(ent); !status; status = dbNextRecordType(ent)) {
         for (status = dbFirstRecord(ent); !status; status = dbNextRecord(ent)) {
@@ -161,16 +164,16 @@ void MappingInfo::populateInfoFieldsCache()
         }
     }
 
-    log_debug_printf(_log, "populateInfoFieldsCache: cached %zu records\n", s_infoCache.size());
+    log_debug_printf(_log, "populateQInfoFieldsCache: cached %zu records\n", s_infoCache.size());
 }
 
-const char* MappingInfo::findAlarmMsg(const char* key) const
+const char* MappingInfo::findQInfoValue(const char* key) const
 {
     auto cmp = [](const std::pair<const char*, dbInfoNode*>& entry, const char* k) {
         return strcmp(entry.first, k) < 0;
     };
-    auto it = std::lower_bound(infoFields.begin(), infoFields.end(), key, cmp);
-    if (it != infoFields.end() && strcmp(it->first, key) == 0)
+    auto it = std::lower_bound(qInfoFields.begin(), qInfoFields.end(), key, cmp);
+    if (it != qInfoFields.end() && strcmp(it->first, key) == 0)
         return it->second->string;
     return defaultAlarmMsg;
 }

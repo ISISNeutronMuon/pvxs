@@ -45,10 +45,11 @@ struct MappingInfo {
     void updateNsecMask(dbCommon *prec);
 
     const char* defaultAlarmMsg = nullptr;
-    std::vector<std::pair<const char*, dbInfoNode*>> infoFields;
-    void updateInfoFields(dbCommon *prec);
-    const char* findAlarmMsg(const char* key) const;
-    static void populateInfoFieldsCache();
+    std::vector<std::pair<const char*, dbInfoNode*>> qInfoFields;
+    void updateQInfoFields(dbCommon *prec);
+    const char* findQInfoValue(const char* key) const;
+    static void clearQInfoFieldsCache();
+    static void populateQInfoFieldsCache();
 };
 
 /**

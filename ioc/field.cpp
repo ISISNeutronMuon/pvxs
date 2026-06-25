@@ -25,7 +25,7 @@ Field::Field(const FieldDefinition &def)
         value = Channel(def.channel);
         properties = Channel(def.channel);
         info.updateNsecMask(dbChannelRecord(value));
-        info.updateInfoFields(dbChannelRecord(value));
+        info.updateQInfoFields(dbChannelRecord(value));
     }
     if (!fieldName.fieldNameComponents.empty()) {
         name = fieldName.fieldNameComponents[0].name;

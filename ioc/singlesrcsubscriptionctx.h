@@ -27,7 +27,7 @@ struct SingleInfo : public MappingInfo, public SingleSecurityCache {
 
     explicit SingleInfo(Channel&& chan) :chan(std::move(chan)) {
         updateNsecMask(dbChannelRecord(this->chan));
-        updateInfoFields(dbChannelRecord(this->chan));
+        updateQInfoFields(dbChannelRecord(this->chan));
     }
 };
 
