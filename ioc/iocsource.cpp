@@ -154,25 +154,6 @@ void getArrayValue(dbChannel* pChannel,
     }
 }
 
-/* Get the alarm message string based on an info field in the record */
-static
-const char* getInfoAlarmString(const char* const info_field,
-                               const MappingInfo& info)
-{
-    const char* alarm_msg = nullptr;
-
-    auto val = info.infoFields.find(info_field);
-    if (val != info.infoFields.end())
-        alarm_msg = val->second->string;
-    else {
-        auto def = info.infoFields.find("Q:DEFAULT_AMSG");
-        if (def != info.infoFields.end())
-            alarm_msg = def->second->string;
-    }
-
-    return alarm_msg;
-}
-
 /* Set the alarm message string based on the channel's status */
 static
 const char* getAlarmMessage(epicsUInt16 status,
@@ -188,16 +169,16 @@ const char* getAlarmMessage(epicsUInt16 status,
         case NO_ALARM:
             break;
         case HIHI_ALARM:
-            stsmsg = getInfoAlarmString("Q:HIHI_AMSG", info);
+            stsmsg = info.findAlarmMsg("Q:HIHI_AMSG");
             break;
         case HIGH_ALARM:
-            stsmsg = getInfoAlarmString("Q:HIGH_AMSG", info);
+            stsmsg = info.findAlarmMsg("Q:HIGH_AMSG");
             break;
         case LOLO_ALARM:
-            stsmsg = getInfoAlarmString("Q:LOLO_AMSG", info);
+            stsmsg = info.findAlarmMsg("Q:LOLO_AMSG");
             break;
         case LOW_ALARM:
-            stsmsg = getInfoAlarmString("Q:LOW_AMSG", info);
+            stsmsg = info.findAlarmMsg("Q:LOW_AMSG");
             break;
         case STATE_ALARM: {
             auto index = node["value.index"].as<int32_t>();
@@ -205,7 +186,7 @@ const char* getAlarmMessage(epicsUInt16 status,
             if (index >= 0 && static_cast<uint32_t>(index) < no_choices) {
                 char buf[32];
                 epicsSnprintf(buf, sizeof(buf), "Q:STATE%d_AMSG", index);
-                stsmsg = getInfoAlarmString(buf, info);
+                stsmsg = info.findAlarmMsg(buf);
             }
             break;
         }

@@ -8,6 +8,7 @@
  */
 
 #include <string.h>
+#include <algorithm>
 
 #include <pvxs/source.h>
 #include <pvxs/log.h>
@@ -105,11 +106,37 @@ void MappingInfo::updateInfoFields(dbCommon *prec)
     assert(prec);
     DBEntry ent(prec);
 
+    // Create a sorted vector of all info fields whose names begin with "Q:"
     for (auto status = dbFirstInfo(ent); !status; status = dbNextInfo(ent)) {
         if (strncmp(ent->pinfonode->name, "Q:", 2) == 0)
-            infoFields[ent->pinfonode->name] = ent->pinfonode;
+            infoFields.emplace_back(ent->pinfonode->name, ent->pinfonode);
     }
+    std::sort(infoFields.begin(), infoFields.end(),
+              [](const std::pair<const char*, dbInfoNode*>& a,
+                 const std::pair<const char*, dbInfoNode*>& b) {
+                  return strcmp(a.first, b.first) < 0;
+              });
+
+    // Find the default alarm message, if any, and store it in defaultAlarmMsg
+    auto cmp = [](const std::pair<const char*, dbInfoNode*>& entry, const char* key) {
+        return strcmp(entry.first, key) < 0;
+    };
+    auto def = std::lower_bound(infoFields.begin(), infoFields.end(), "Q:DEFAULT_AMSG", cmp);
+    if (def != infoFields.end() && strcmp(def->first, "Q:DEFAULT_AMSG") == 0)
+        defaultAlarmMsg = def->second->string;
+
     log_debug_printf(_log, "updateInfoFields: %s (%zu fields)\n", prec->name, infoFields.size());
+}
+
+const char* MappingInfo::findAlarmMsg(const char* key) const
+{
+    auto cmp = [](const std::pair<const char*, dbInfoNode*>& entry, const char* k) {
+        return strcmp(entry.first, k) < 0;
+    };
+    auto it = std::lower_bound(infoFields.begin(), infoFields.end(), key, cmp);
+    if (it != infoFields.end() && strcmp(it->first, key) == 0)
+        return it->second->string;
+    return defaultAlarmMsg;
 }
 
 } // namespace ioc

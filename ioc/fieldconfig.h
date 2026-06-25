@@ -11,7 +11,8 @@
 #define PVXS_FIELDCONFIG_H
 
 #include <string>
-#include <unordered_map>
+#include <utility>
+#include <vector>
 #include <limits>
 
 #include <dbChannel.h>
@@ -43,8 +44,10 @@ struct MappingInfo {
 
     void updateNsecMask(dbCommon *prec);
 
-    std::unordered_map<std::string, dbInfoNode*> infoFields;
+    const char* defaultAlarmMsg = nullptr;
+    std::vector<std::pair<const char*, dbInfoNode*>> infoFields;
     void updateInfoFields(dbCommon *prec);
+    const char* findAlarmMsg(const char* key) const;
 };
 
 /**
