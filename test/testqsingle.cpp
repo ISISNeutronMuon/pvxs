@@ -1003,12 +1003,12 @@ void testAlarmMessage()
     testDiag("%s", __func__);
     TestClient ctxt;
 
-    // specific PVXS:AMSG_HIHI message
+    // specific Q:HIHI_AMSG message
     testdbPutFieldOk("test:amsg", DBR_DOUBLE, 95.0);
     auto val = ctxt.get("test:amsg").exec()->wait(5.0);
     testStrEq(val["alarm.message"].as<std::string>(), "Too high!");
 
-    // specific PVXS:AMSG_HIGH message
+    // specific Q:HIGH_AMSG message
     testdbPutFieldOk("test:amsg", DBR_DOUBLE, 85.0);
     val = ctxt.get("test:amsg").exec()->wait(5.0);
     testStrEq(val["alarm.message"].as<std::string>(), "Getting high");
@@ -1018,28 +1018,41 @@ void testAlarmMessage()
     val = ctxt.get("test:amsg").exec()->wait(5.0);
     testStrEq(val["alarm.message"].as<std::string>(), "");
 
-    // PVXS:AMSG_LOLO with a message longer than the 40-char DB_AMSG_SIZE limit
+    // Q:LOLO_AMSG with a message longer than the 40-char DB_AMSG_SIZE limit
     testdbPutFieldOk("test:amsg", DBR_DOUBLE, 5.0);
     val = ctxt.get("test:amsg").exec()->wait(5.0);
     testStrEq(val["alarm.message"].as<std::string>(),
               "Value is critically low - this message exceeds forty chars");
 
-    // LOW_ALARM with no specific PVXS:AMSG_LOW — falls back to PVXS:AMSG_DEFAULT
+    // LOW_ALARM with no specific Q:LOW_AMSG — falls back to Q:DEFAULT_AMSG
     testdbPutFieldOk("test:amsg", DBR_DOUBLE, 15.0);
     val = ctxt.get("test:amsg").exec()->wait(5.0);
     testStrEq(val["alarm.message"].as<std::string>(), "Something is wrong");
 
-    // PVXS:AMSG_DEFAULT fallback when no specific key is set
+    // Q:DEFAULT_AMSG fallback when no specific key is set
     testdbPutFieldOk("test:amsg:default", DBR_DOUBLE, 95.0);
     val = ctxt.get("test:amsg:default").exec()->wait(5.0);
     testStrEq(val["alarm.message"].as<std::string>(), "Default message");
+}
+
+void testAlarmMessageState()
+{
+    testDiag("%s", __func__);
+    TestClient ctxt;
+
+    for (int i = 0; i < 16; i++) {
+        testdbPutFieldOk("test:amsg:state", DBR_LONG, i);
+        auto val = ctxt.get("test:amsg:state").exec()->wait(5.0);
+        testStrEq(val["alarm.message"].as<std::string>(),
+                  "State " + std::to_string(i) + " alarm");
+    }
 }
 
 } // namespace
 
 MAIN(testqsingle)
 {
-    testPlan(125);
+    testPlan(157);
     testSetup();
     pvxs::logger_config_env();
     generalTimeRegisterCurrentProvider("test", 1, &testTimeCurrent);
@@ -1072,6 +1085,7 @@ MAIN(testqsingle)
         ioc.init();
         testGetScalar();
         testAlarmMessage();
+        testAlarmMessageState();
         testLongString();
         testGetArray();
         testPut();

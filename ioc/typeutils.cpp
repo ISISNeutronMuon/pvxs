@@ -94,9 +94,9 @@ void MappingInfo::updateNsecMask(dbCommon *prec)
 /**
  * Populate the infoFields cache from the info nodes of the given record.
  *
- * Only info fields whose names begin with the "PVXS:" prefix are stored.
+ * Only info fields whose names begin with the "Q:" prefix are stored.
  * All other info fields are ignored. Subsequent code (e.g. alarm message
- * lookup) must therefore only query infoFields for PVXS:-prefixed keys.
+ * lookup) must therefore only query infoFields for Q:-prefixed keys.
  *
  * @param prec the record whose info nodes are to be cached
  */
@@ -106,7 +106,7 @@ void MappingInfo::updateInfoFields(dbCommon *prec)
     DBEntry ent(prec);
 
     for (auto status = dbFirstInfo(ent); !status; status = dbNextInfo(ent)) {
-        if (strncmp(ent->pinfonode->name, "PVXS:", 5) == 0)
+        if (strncmp(ent->pinfonode->name, "Q:", 2) == 0)
             infoFields[ent->pinfonode->name] = ent->pinfonode;
     }
     log_debug_printf(_log, "updateInfoFields: %s (%zu fields)\n", prec->name, infoFields.size());

@@ -12,7 +12,6 @@
 #include <atomic>
 
 #include <special.h>
-#include <epicsTime.h>
 #include <epicsStdlib.h>
 #include <epicsString.h>
 
@@ -166,7 +165,7 @@ const char* getInfoAlarmString(const char* const info_field,
     if (val != info.infoFields.end())
         alarm_msg = val->second->string;
     else {
-        auto def = info.infoFields.find("PVXS:AMSG_DEFAULT");
+        auto def = info.infoFields.find("Q:DEFAULT_AMSG");
         if (def != info.infoFields.end())
             alarm_msg = def->second->string;
     }
@@ -189,23 +188,23 @@ const char* getAlarmMessage(epicsUInt16 status,
         case NO_ALARM:
             break;
         case HIHI_ALARM:
-            stsmsg = getInfoAlarmString("PVXS:AMSG_HIHI", info);
+            stsmsg = getInfoAlarmString("Q:HIHI_AMSG", info);
             break;
         case HIGH_ALARM:
-            stsmsg = getInfoAlarmString("PVXS:AMSG_HIGH", info);
+            stsmsg = getInfoAlarmString("Q:HIGH_AMSG", info);
             break;
         case LOLO_ALARM:
-            stsmsg = getInfoAlarmString("PVXS:AMSG_LOLO", info);
+            stsmsg = getInfoAlarmString("Q:LOLO_AMSG", info);
             break;
         case LOW_ALARM:
-            stsmsg = getInfoAlarmString("PVXS:AMSG_LOW", info);
+            stsmsg = getInfoAlarmString("Q:LOW_AMSG", info);
             break;
         case STATE_ALARM: {
             auto index = node["value.index"].as<int32_t>();
             auto no_choices = (node["value.choices"].as<shared_array<const std::string>>()).size();
             if (index >= 0 && static_cast<uint32_t>(index) < no_choices) {
                 char buf[32];
-                epicsSnprintf(buf, sizeof(buf), "PVXS:AMSG_STATE%d", index);
+                epicsSnprintf(buf, sizeof(buf), "Q:STATE%d_AMSG", index);
                 stsmsg = getInfoAlarmString(buf, info);
             }
             break;
@@ -216,7 +215,7 @@ const char* getAlarmMessage(epicsUInt16 status,
             break;
     }
 
-    // Fallback chain: specific info field -> PVXS:AMSG_DEFAULT -> EPICS condition string
+    // Fallback chain: specific info field -> Q:DEFAULT_AMSG -> EPICS condition string
     if (!stsmsg)
         stsmsg = epicsAlarmConditionStrings[status];
 
