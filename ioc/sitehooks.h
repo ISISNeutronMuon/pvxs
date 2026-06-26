@@ -34,6 +34,11 @@ void setAlarmStringFn(std::function<const char*(epicsUInt16, dbCommon*, const Va
 // Returns true if the registered filter says the record should be excluded.
 bool isPVFiltered(dbCommon* prec);
 
+// Pre-computed name-based filter set (populated via markFiltered during iocInit).
+// isNameFiltered accepts bare record names or "RECORD.FIELD" PV names.
+void markFiltered(const char* name);
+bool isNameFiltered(const char* pvName);
+
 void initHookAtBeginning();
 void initHookAfterIocBuilt();
 

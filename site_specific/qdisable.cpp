@@ -20,8 +20,22 @@ bool isQDisabled(dbCommon* prec)
     return val && val[0] != '\0' && strcmp(val, "0") != 0;
 }
 
+void populateFilteredNames()
+{
+    pvxs::ioc::DBEntry dbEntry;
+    for (long status = dbFirstRecordType(dbEntry); !status; status = dbNextRecordType(dbEntry)) {
+        for (status = dbFirstRecord(dbEntry); !status; status = dbNextRecord(dbEntry)) {
+            if (isQDisabled(static_cast<dbCommon*>(dbEntry->precnode->precord)))
+                pvxs::ioc::site::markFiltered(dbEntry->precnode->recordname);
+        }
+    }
+}
+
 struct Registrar {
-    Registrar() { pvxs::ioc::site::setPVFilter(isQDisabled); }
+    Registrar() {
+        pvxs::ioc::site::setPVFilter(isQDisabled);
+        pvxs::ioc::site::addInitHookAtBeginning(populateFilteredNames);
+    }
 } s_registrar;
 
 } // namespace

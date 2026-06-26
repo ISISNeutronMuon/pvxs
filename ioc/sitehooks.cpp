@@ -4,6 +4,9 @@
  * in file LICENSE that is included with this distribution.
  */
 
+#include <cstring>
+#include <set>
+#include <string>
 #include <vector>
 #include <functional>
 
@@ -31,6 +34,10 @@ std::function<const char*(epicsUInt16, dbCommon*, const Value&)>& alarmStringFn(
     static std::function<const char*(epicsUInt16, dbCommon*, const Value&)> fn;
     return fn;
 }
+std::set<std::string>& filteredNames() {
+    static std::set<std::string> s;
+    return s;
+}
 } // namespace
 
 void setPVFilter(std::function<bool(dbCommon*)> fn)
@@ -42,6 +49,17 @@ bool isPVFiltered(dbCommon* prec)
 {
     auto& fn = pvFilterFn();
     return fn && fn(prec);
+}
+
+void markFiltered(const char* name)
+{
+    filteredNames().insert(name);
+}
+
+bool isNameFiltered(const char* pvName)
+{
+    auto& names = filteredNames();
+    return !names.empty() && names.count(std::string(pvName, strcspn(pvName, ".")));
 }
 
 void addInitHookAtBeginning(std::function<void()> fn)

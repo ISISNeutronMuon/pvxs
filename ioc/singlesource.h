@@ -10,9 +10,6 @@
 #ifndef PVXS_SINGLESOURCE_H
 #define PVXS_SINGLESOURCE_H
 
-#include <set>
-#include <string>
-
 #include <dbNotify.h>
 #include <dbEvent.h>
 
@@ -42,8 +39,6 @@ public:
 private:
     // List of all database records that this single source serves
     List allRecords;
-    // Records excluded by a registered PV filter; not served as PVs
-    std::set<std::string> disabledRecords;
     // The event context for all subscriptions
     DBEventContext eventContext;
 };

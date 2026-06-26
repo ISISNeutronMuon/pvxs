@@ -403,13 +403,8 @@ SingleSource::SingleSource()
     DBEntry dbEntry;
     for (long status = dbFirstRecordType(dbEntry); !status; status = dbNextRecordType(dbEntry)) {
         for (status = dbFirstRecord(dbEntry); !status; status = dbNextRecord(dbEntry)) {
-            auto* prec = static_cast<dbCommon*>(dbEntry->precnode->precord);
-            if (site::isPVFiltered(prec)) {
-                disabledRecords.insert(dbEntry->precnode->recordname);
-                log_debug_printf(_logname, "Skipping filtered record '%s'\n", dbEntry->precnode->recordname);
-            } else {
+            if (!site::isNameFiltered(dbEntry->precnode->recordname))
                 names->insert(dbEntry->precnode->recordname);
-            }
         }
     }
 
@@ -441,10 +436,8 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
         return;
     }
 
-    if (site::isPVFiltered(dbChannelRecord(pDbChannel))) {
-        log_debug_printf(_logname, "Refusing filtered channel '%s'\n", sourceName);
+    if (site::isPVFiltered(dbChannelRecord(pDbChannel)))
         return;
-    }
 
     log_debug_printf(_logname, "Accepting channel for '%s'\n", sourceName);
 
@@ -479,14 +472,8 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
 void SingleSource::onSearch(Search& searchOperation) {
     for (auto& pv: searchOperation) {
         if (!dbChannelTest(pv.name())) {
-            if (!disabledRecords.empty()) {
-                // PV name may be "RECORD" or "RECORD.FIELD"; extract the record name
-                const char* pvName = pv.name();
-                const char* dot = strchr(pvName, '.');
-                std::string recName(pvName, dot ? (size_t)(dot - pvName) : strlen(pvName));
-                if (disabledRecords.count(recName))
-                    continue;
-            }
+            if (site::isNameFiltered(pv.name()))
+                continue;
             pv.claim();
             log_debug_printf(_logname, "Claiming '%s'\n", pv.name());
         }
