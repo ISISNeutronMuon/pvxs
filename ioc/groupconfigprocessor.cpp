@@ -21,7 +21,6 @@
 
 #include "dbentry.h"
 #include "groupconfigprocessor.h"
-#include "sitehooks.h"
 #include "groupdefinition.h"
 #include "groupprocessorcontext.h"
 #include "iocshcommand.h"
@@ -54,10 +53,6 @@ void GroupConfigProcessor::loadConfigFromDb() {
             const char* jsonGroupDefinition = infoField(dbEntry, "Q:group");
             if (jsonGroupDefinition != nullptr) {
                 auto& dbRecordName(dbEntry->precnode->recordname);
-                if (site::isNameFiltered(dbRecordName)) {
-                    log_debug_printf(_logname, "%s: skipping filtered record\n", dbRecordName);
-                    continue;
-                }
                 log_debug_printf(_logname, "%s: info(Q:Group, ...\n", dbRecordName);
 
                 try {

@@ -10,6 +10,8 @@
 #include <vector>
 #include <functional>
 
+#include <initHooks.h>
+
 #include "sitehooks.h"
 
 namespace pvxs {
@@ -34,6 +36,16 @@ std::set<std::string>& filteredNames() {
     static std::set<std::string> s;
     return s;
 }
+void siteHookDispatch(initHookState state) noexcept
+{
+    if (state == initHookAtBeginning)
+        for (auto& fn : hooksAtBeginning()) fn();
+    else if (state == initHookAfterIocBuilt)
+        for (auto& fn : hooksAfterIocBuilt()) fn();
+}
+struct SiteHooksRegistrar {
+    SiteHooksRegistrar() { initHookRegister(siteHookDispatch); }
+} s_registrar;
 } // namespace
 
 void markFiltered(const char* name)
@@ -60,16 +72,6 @@ void addInitHookAfterIocBuilt(std::function<void()> fn)
 void setAlarmString(std::function<const char*(epicsUInt16, dbCommon*, const Value&)> fn)
 {
     alarmStringFn() = std::move(fn);
-}
-
-void fireHooksAtBeginning()
-{
-    for (auto& fn : hooksAtBeginning()) fn();
-}
-
-void fireHooksAfterIocBuilt()
-{
-    for (auto& fn : hooksAfterIocBuilt()) fn();
 }
 
 const char* alarmString(epicsUInt16 status, dbCommon* prec, const Value& node)

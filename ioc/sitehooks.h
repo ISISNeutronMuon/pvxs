@@ -35,9 +35,6 @@ void setAlarmString(std::function<const char*(epicsUInt16, dbCommon*, const Valu
 // Accepts bare record names or "RECORD.FIELD" PV names.
 bool isNameFiltered(const char* pvName);
 
-void fireHooksAtBeginning();
-void fireHooksAfterIocBuilt();
-
 // Returns nullptr when no provider is registered; caller should use the EPICS default.
 const char* alarmString(epicsUInt16 status, dbCommon* prec, const Value& node);
 
