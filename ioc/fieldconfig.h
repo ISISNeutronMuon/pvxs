@@ -11,7 +11,6 @@
 #define PVXS_FIELDCONFIG_H
 
 #include <string>
-#include <map>
 #include <limits>
 
 #include <dbChannel.h>

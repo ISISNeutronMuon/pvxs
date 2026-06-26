@@ -21,6 +21,7 @@
 
 #include "dbentry.h"
 #include "groupconfigprocessor.h"
+#include "pvfilter.h"
 #include "groupdefinition.h"
 #include "groupprocessorcontext.h"
 #include "iocshcommand.h"
@@ -53,6 +54,11 @@ void GroupConfigProcessor::loadConfigFromDb() {
             const char* jsonGroupDefinition = infoField(dbEntry, "Q:group");
             if (jsonGroupDefinition != nullptr) {
                 auto& dbRecordName(dbEntry->precnode->recordname);
+                auto* prec = static_cast<dbCommon*>(dbEntry->precnode->precord);
+                if (isPVFiltered(prec)) {
+                    log_debug_printf(_logname, "%s: skipping filtered record\n", dbRecordName);
+                    continue;
+                }
                 log_debug_printf(_logname, "%s: info(Q:Group, ...\n", dbRecordName);
 
                 try {

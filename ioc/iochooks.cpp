@@ -33,6 +33,7 @@
 #include "iocshcommand.h"
 #include "utilpvt.h"
 #include "qsrvpvt.h"
+#include "sitehooks.h"
 
 #ifdef USE_QSRV_SINGLE
 #  include <dbUnitTest.h>
@@ -323,6 +324,7 @@ void pvxsInitHook(initHookState theInitHookState) noexcept {
 #endif
     case initHookAtBeginning:
         dbRegisterQSRV2();
+        site::initHookAtBeginning();
         break;
     case initHookAfterCaLinkInit:
 #ifdef USE_PVA_LINKS
@@ -357,6 +359,7 @@ void pvxsInitHook(initHookState theInitHookState) noexcept {
 #ifdef USE_PVA_LINKS
         linkGlobal_t::init();
 #endif
+        site::initHookAfterIocBuilt();
         addSingleSrc();
         addGroupSrc();
         break;

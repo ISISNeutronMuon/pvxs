@@ -25,6 +25,9 @@ endif
 DIRS += test
 test_DEPEND_DIRS = src ioc
 
+DIRS += site_specific
+site_specific_DEPEND_DIRS = ioc
+
 DIRS += example
 example_DEPEND_DIRS = src
 

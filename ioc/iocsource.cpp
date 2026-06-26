@@ -12,13 +12,13 @@
 #include <atomic>
 
 #include <special.h>
-#include <epicsTime.h>
 #include <epicsStdlib.h>
 #include <epicsString.h>
 
 #include <pvxs/log.h>
 
 #include "alarm.h"
+#include "sitehooks.h"
 #include "iocsource.h"
 #include "dbentry.h"
 #include "dberrormessage.h"
@@ -222,8 +222,11 @@ void getTimeAlarm(dbChannel* pChannel,
                 status = 6; // UNDEFINED
             }
 
-            if(meta.status < ALARM_NSTATUS)
-                stsmsg = epicsAlarmConditionStrings[meta.status];
+            if(meta.status < ALARM_NSTATUS) {
+                stsmsg = site::alarmString(meta.status, dbChannelRecord(pChannel), node);
+                if (!stsmsg)
+                    stsmsg = epicsAlarmConditionStrings[meta.status];
+            }
             node["alarm.status"] = status;
             node["alarm.severity"] = meta.severity;
         }
@@ -328,10 +331,6 @@ void IOCSource::get(Value& node, // node within top level structure addressed by
         getProperties(pChannel, pDbFieldLog, node);
     }
 
-    if((info.type==MappingInfo::Scalar || info.type==MappingInfo::Meta) && (change & (UpdateType::Value | UpdateType::Alarm))) {
-        getTimeAlarm(pChannel, pDbFieldLog, node, info, change);
-    }
-
     if((change & UpdateType::Value) && info.type!=MappingInfo::Meta) {
         Value value;
         if(info.type==MappingInfo::Scalar) {
@@ -348,6 +347,10 @@ void IOCSource::get(Value& node, // node within top level structure addressed by
         } else {
             getArrayValue(pChannel, pDbFieldLog, value);
         }
+    }
+
+    if((info.type==MappingInfo::Scalar || info.type==MappingInfo::Meta) && (change & (UpdateType::Value | UpdateType::Alarm))) {
+        getTimeAlarm(pChannel, pDbFieldLog, node, info, change);
     }
 }
 
