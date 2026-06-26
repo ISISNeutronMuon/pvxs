@@ -33,7 +33,6 @@ void populateFilteredNames()
 
 struct Registrar {
     Registrar() {
-        pvxs::ioc::site::setPVFilter(isQDisabled);
         pvxs::ioc::site::addInitHookAtBeginning(populateFilteredNames);
     }
 } s_registrar;

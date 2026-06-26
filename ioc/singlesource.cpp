@@ -436,7 +436,7 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
         return;
     }
 
-    if (site::isPVFiltered(dbChannelRecord(pDbChannel)))
+    if (site::isNameFiltered(sourceName))
         return;
 
     log_debug_printf(_logname, "Accepting channel for '%s'\n", sourceName);

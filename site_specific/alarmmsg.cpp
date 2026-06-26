@@ -130,7 +130,7 @@ struct Registrar {
     Registrar() {
         pvxs::ioc::site::addInitHookAtBeginning(onBeginning);
         pvxs::ioc::site::addInitHookAfterIocBuilt(onIocBuilt);
-        pvxs::ioc::site::setAlarmStringFn(getAlarmMessage);
+        pvxs::ioc::site::setAlarmString(getAlarmMessage);
     }
 } s_registrar;
 

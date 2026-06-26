@@ -324,7 +324,7 @@ void pvxsInitHook(initHookState theInitHookState) noexcept {
 #endif
     case initHookAtBeginning:
         dbRegisterQSRV2();
-        site::initHookAtBeginning();
+        site::fireHooksAtBeginning();
         break;
     case initHookAfterCaLinkInit:
 #ifdef USE_PVA_LINKS
@@ -359,7 +359,7 @@ void pvxsInitHook(initHookState theInitHookState) noexcept {
 #ifdef USE_PVA_LINKS
         linkGlobal_t::init();
 #endif
-        site::initHookAfterIocBuilt();
+        site::fireHooksAfterIocBuilt();
         addSingleSrc();
         addGroupSrc();
         break;

@@ -54,8 +54,7 @@ void GroupConfigProcessor::loadConfigFromDb() {
             const char* jsonGroupDefinition = infoField(dbEntry, "Q:group");
             if (jsonGroupDefinition != nullptr) {
                 auto& dbRecordName(dbEntry->precnode->recordname);
-                auto* prec = static_cast<dbCommon*>(dbEntry->precnode->precord);
-                if (site::isPVFiltered(prec)) {
+                if (site::isNameFiltered(dbRecordName)) {
                     log_debug_printf(_logname, "%s: skipping filtered record\n", dbRecordName);
                     continue;
                 }
