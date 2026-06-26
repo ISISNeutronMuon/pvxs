@@ -70,7 +70,7 @@ Contents
    releasenotes
 
 Facility Extensions
-========================
+-------------------
 
 .. toctree::
    :maxdepth: 2
