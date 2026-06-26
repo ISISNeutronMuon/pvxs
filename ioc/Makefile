@@ -17,6 +17,10 @@ include $(TOP)/configure/CONFIG
 USR_CPPFLAGS += -I$(TOP)/src
 USR_CPPFLAGS += -DPVXS_IOC_API_BUILDING
 
+# facility/ is always on the include path; any .cpp files there are compiled in
+SRC_DIRS += $(TOP)/facility
+pvxsIoc_SRCS += $(notdir $(wildcard $(TOP)/facility/*.cpp))
+
 DBD += pvxsIoc.dbd
 CLEANS += pvxsIoc.dbd
 
@@ -27,6 +31,7 @@ LIBRARY += pvxsIoc
 SHRLIB_VERSION = $(PVXS_MAJOR_VERSION).$(PVXS_MINOR_VERSION)
 
 pvxsIoc_SRCS += iochooks.cpp
+pvxsIoc_SRCS += facilityhooks.cpp
 
 ifdef BASE_3_15
 

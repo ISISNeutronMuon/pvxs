@@ -19,6 +19,7 @@
 #include <pvxs/log.h>
 
 #include "alarm.h"
+#include "facilityhooks.h"
 #include "iocsource.h"
 #include "dbentry.h"
 #include "dberrormessage.h"
@@ -349,6 +350,7 @@ void IOCSource::get(Value& node, // node within top level structure addressed by
             getArrayValue(pChannel, pDbFieldLog, value);
         }
     }
+    facility::postProcessNode(dbChannelRecord(pChannel), node);
 }
 
 /**
