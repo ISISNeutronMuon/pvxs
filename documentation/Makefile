@@ -6,7 +6,7 @@ INKSCAPE?=inkscape
 #
 # apt-get install doxygen python3-sphinx python3-breathe
 
-# If ../facility/doc/index.rst exists, its content is woven into the build.
+# If ../facility/documentation/index.rst exists its content is woven into the build.
 # conf.py creates the facility/ link automatically (cross-platform).
 
 all: gen
@@ -14,7 +14,7 @@ all: gen
 clean:
 	rm -rf xml default pvxs.tag
 	rm -rf html _build _image
-	$(PYTHON) -c "import shutil; shutil.rmtree('facility', ignore_errors=True)"
+	$(PYTHON) -c "import shutil,os; p='facility'; os.unlink(p) if os.path.islink(p) else shutil.rmtree(p,True) if os.path.isdir(p) else None"
 
 # conf.py reads CONFIG_PVXS_VERSION to extract version number
 gen: ../include/pvxs/version.h

@@ -222,17 +222,19 @@ breathe_projects = {
     "PVXS": "xml"
 }
 
-# If ../facility/doc/index.rst exists, link it into the build tree and
+# If ../facility/documentation/index.rst exists, link it into the build tree and
 # inject a toctree entry into index.rst.  The link is created here (not in the
 # Makefile) so the build works on Windows, Mac, and Linux without shell tricks.
 
 _conf_dir   = _os.path.dirname(__file__)
-_site_src   = _os.path.normpath(_os.path.join(_conf_dir, '..', 'facility', 'doc'))
+_site_src   = _os.path.normpath(_os.path.join(_conf_dir, '..', 'facility', 'documentation'))
 _site_link  = _os.path.join(_conf_dir, 'facility')
 
 def _ensure_site_link():
-    if _os.path.lexists(_site_link):
+    if _os.path.isdir(_site_link):          # exists and reachable — nothing to do
         return True
+    if _os.path.lexists(_site_link):        # broken or stale symlink — remove it
+        _os.unlink(_site_link)
     try:                                    # symlink — instant and stays live
         _os.symlink(_site_src, _site_link, target_is_directory=True)
         return True
