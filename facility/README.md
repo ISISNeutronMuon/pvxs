@@ -30,8 +30,7 @@ record fields are safe to read.
 Only one post-processor may be registered; a second call to
 `setNodePostProcessor` replaces the first.
 
-See `alarmmsg.cpp` for a complete example that reads per-record `Q:*_AMSG` info
-fields and writes a custom `alarm.message`.
+Add a `.cpp` file to this directory for a complete example.
 
 ## Adding a new extension
 
@@ -65,5 +64,5 @@ struct Registrar {
 ## Tests
 
 Unit tests for facility extensions live in `test/`.  Each test links
-against the extension file it is testing plus `libpvxsIoc`.  See the existing
-`testalarmmsg` target in `test/Makefile` for the pattern.
+against the extension file it is testing plus `libpvxsIoc`.  See
+`test/Makefile` for the pattern.
