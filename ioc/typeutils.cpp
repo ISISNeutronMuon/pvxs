@@ -87,7 +87,6 @@ void MappingInfo::updateNsecMask(dbCommon *prec)
         }
     }
 }
-
 } // namespace ioc
 
 } // namespace pvxs
