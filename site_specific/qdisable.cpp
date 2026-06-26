@@ -8,7 +8,7 @@
 #include <cstring>
 
 #include "dbentry.h"
-#include "pvfilter.h"
+#include "sitehooks.h"
 
 namespace {
 
@@ -21,7 +21,7 @@ bool isQDisabled(dbCommon* prec)
 }
 
 struct Registrar {
-    Registrar() { pvxs::ioc::setPVFilter(isQDisabled); }
+    Registrar() { pvxs::ioc::site::setPVFilter(isQDisabled); }
 } s_registrar;
 
 } // namespace

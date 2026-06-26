@@ -26,7 +26,7 @@
 #include "dberrormessage.h"
 #include "dblocker.h"
 #include "iocsource.h"
-#include "pvfilter.h"
+#include "sitehooks.h"
 #include "singlesource.h"
 #include "singlesrcsubscriptionctx.h"
 #include "credentials.h"
@@ -404,7 +404,7 @@ SingleSource::SingleSource()
     for (long status = dbFirstRecordType(dbEntry); !status; status = dbNextRecordType(dbEntry)) {
         for (status = dbFirstRecord(dbEntry); !status; status = dbNextRecord(dbEntry)) {
             auto* prec = static_cast<dbCommon*>(dbEntry->precnode->precord);
-            if (isPVFiltered(prec)) {
+            if (site::isPVFiltered(prec)) {
                 disabledRecords.insert(dbEntry->precnode->recordname);
                 log_debug_printf(_logname, "Skipping filtered record '%s'\n", dbEntry->precnode->recordname);
             } else {
@@ -441,7 +441,7 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
         return;
     }
 
-    if (isPVFiltered(dbChannelRecord(pDbChannel))) {
+    if (site::isPVFiltered(dbChannelRecord(pDbChannel))) {
         log_debug_printf(_logname, "Refusing filtered channel '%s'\n", sourceName);
         return;
     }

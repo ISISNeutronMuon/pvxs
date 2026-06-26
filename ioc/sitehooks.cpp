@@ -15,6 +15,10 @@ namespace site {
 
 namespace {
 // Function-local statics avoid init-order issues with site-specific registrars.
+std::function<bool(dbCommon*)>& pvFilterFn() {
+    static std::function<bool(dbCommon*)> fn;
+    return fn;
+}
 std::vector<std::function<void()>>& hooksAtBeginning() {
     static std::vector<std::function<void()>> v;
     return v;
@@ -28,6 +32,17 @@ std::function<const char*(epicsUInt16, dbCommon*, const Value&)>& alarmStringFn(
     return fn;
 }
 } // namespace
+
+void setPVFilter(std::function<bool(dbCommon*)> fn)
+{
+    pvFilterFn() = std::move(fn);
+}
+
+bool isPVFiltered(dbCommon* prec)
+{
+    auto& fn = pvFilterFn();
+    return fn && fn(prec);
+}
 
 void addInitHookAtBeginning(std::function<void()> fn)
 {

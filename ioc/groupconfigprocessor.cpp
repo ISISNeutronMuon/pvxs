@@ -21,7 +21,7 @@
 
 #include "dbentry.h"
 #include "groupconfigprocessor.h"
-#include "pvfilter.h"
+#include "sitehooks.h"
 #include "groupdefinition.h"
 #include "groupprocessorcontext.h"
 #include "iocshcommand.h"
@@ -55,7 +55,7 @@ void GroupConfigProcessor::loadConfigFromDb() {
             if (jsonGroupDefinition != nullptr) {
                 auto& dbRecordName(dbEntry->precnode->recordname);
                 auto* prec = static_cast<dbCommon*>(dbEntry->precnode->precord);
-                if (isPVFiltered(prec)) {
+                if (site::isPVFiltered(prec)) {
                     log_debug_printf(_logname, "%s: skipping filtered record\n", dbRecordName);
                     continue;
                 }

@@ -19,6 +19,9 @@ namespace site {
 
 // --- Registration (called by site-specific code) ---
 
+// Single predicate; returns true for records that should not be served as PVs.
+void setPVFilter(std::function<bool(dbCommon*)> fn);
+
 // Multiple callbacks may be registered; all are fired in registration order.
 void addInitHookAtBeginning(std::function<void()> fn);
 void addInitHookAfterIocBuilt(std::function<void()> fn);
@@ -26,7 +29,10 @@ void addInitHookAfterIocBuilt(std::function<void()> fn);
 // Single alarm-string provider; replaces any previously registered one.
 void setAlarmStringFn(std::function<const char*(epicsUInt16, dbCommon*, const Value&)> fn);
 
-// --- Dispatch (called by iochooks.cpp and iocsource.cpp) ---
+// --- Dispatch (called by core ioc/ code) ---
+
+// Returns true if the registered filter says the record should be excluded.
+bool isPVFiltered(dbCommon* prec);
 
 void initHookAtBeginning();
 void initHookAfterIocBuilt();
