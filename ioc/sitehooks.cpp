@@ -28,8 +28,8 @@ std::vector<std::function<void()>>& hooksAfterIocBuilt() {
     static std::vector<std::function<void()>> v;
     return v;
 }
-std::function<const char*(epicsUInt16, dbCommon*, const Value&)>& alarmStringFn() {
-    static std::function<const char*(epicsUInt16, dbCommon*, const Value&)> fn;
+std::function<void(dbCommon*, Value&)>& nodePostProcessorFn() {
+    static std::function<void(dbCommon*, Value&)> fn;
     return fn;
 }
 std::set<std::string>& filteredNames() {
@@ -69,15 +69,15 @@ void addInitHookAfterIocBuilt(std::function<void()> fn)
     hooksAfterIocBuilt().push_back(std::move(fn));
 }
 
-void setAlarmString(std::function<const char*(epicsUInt16, dbCommon*, const Value&)> fn)
+void setNodePostProcessor(std::function<void(dbCommon*, Value&)> fn)
 {
-    alarmStringFn() = std::move(fn);
+    nodePostProcessorFn() = std::move(fn);
 }
 
-const char* alarmString(epicsUInt16 status, dbCommon* prec, const Value& node)
+void postProcessNode(dbCommon* prec, Value& node)
 {
-    auto& fn = alarmStringFn();
-    return fn ? fn(status, prec, node) : nullptr;
+    auto& fn = nodePostProcessorFn();
+    if (fn) fn(prec, node);
 }
 
 } // site

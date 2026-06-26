@@ -69,19 +69,19 @@ const char* findQInfoValue(const InfoCache& cache, const char* key)
     return cache.defaultMsg;
 }
 
-const char* getAlarmMessage(epicsUInt16 status, dbCommon* prec, const pvxs::Value& node)
+void applyAlarmMessage(dbCommon* prec, pvxs::Value& node)
 {
-    if (status == NO_ALARM)
-        return epicsAlarmConditionStrings[status];
+    if (prec->stat == NO_ALARM)
+        return;
 
     auto it = s_infoCache.find(prec);
     if (it == s_infoCache.end() || it->second.fields.empty())
-        return nullptr;
+        return;
 
     const InfoCache& cache = it->second;
     const char* stsmsg = nullptr;
 
-    switch(status) {
+    switch(prec->stat) {
     case HIHI_ALARM:
         stsmsg = findQInfoValue(cache, "Q:HIHI_AMSG");
         break;
@@ -107,7 +107,8 @@ const char* getAlarmMessage(epicsUInt16 status, dbCommon* prec, const pvxs::Valu
         break;
     }
 
-    return stsmsg;
+    if (stsmsg)
+        node["alarm.message"] = stsmsg;
 }
 
 void onBeginning()
@@ -130,7 +131,7 @@ struct Registrar {
     Registrar() {
         pvxs::ioc::site::addInitHookAtBeginning(onBeginning);
         pvxs::ioc::site::addInitHookAfterIocBuilt(onIocBuilt);
-        pvxs::ioc::site::setAlarmString(getAlarmMessage);
+        pvxs::ioc::site::setNodePostProcessor(applyAlarmMessage);
     }
 } s_registrar;
 

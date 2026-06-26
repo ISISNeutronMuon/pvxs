@@ -26,8 +26,9 @@ void markFiltered(const char* name);
 void addInitHookAtBeginning(std::function<void()> fn);
 void addInitHookAfterIocBuilt(std::function<void()> fn);
 
-// Single alarm-string provider; replaces any previously registered one.
-void setAlarmString(std::function<const char*(epicsUInt16, dbCommon*, const Value&)> fn);
+// Single node post-processor; replaces any previously registered one.
+// Called at the end of IOCSource::get() with the record locked; may modify any field in node.
+void setNodePostProcessor(std::function<void(dbCommon*, Value&)> fn);
 
 // --- Dispatch (called by core ioc/ code) ---
 
@@ -35,8 +36,7 @@ void setAlarmString(std::function<const char*(epicsUInt16, dbCommon*, const Valu
 // Accepts bare record names or "RECORD.FIELD" PV names.
 bool isNameFiltered(const char* pvName);
 
-// Returns nullptr when no provider is registered; caller should use the EPICS default.
-const char* alarmString(epicsUInt16 status, dbCommon* prec, const Value& node);
+void postProcessNode(dbCommon* prec, Value& node);
 
 } // site
 } // ioc
