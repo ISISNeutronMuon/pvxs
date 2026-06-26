@@ -3,6 +3,5 @@ pvxs.tag
 /html/
 /_build/
 /_image/
-/facility
 *.tmp
 *.inv

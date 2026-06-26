@@ -16,8 +16,6 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
-import os as _os
-import shutil as _shutil
 import time
 
 def git_date():
@@ -221,30 +219,3 @@ breathe_default_project = "PVXS"
 breathe_projects = {
     "PVXS": "xml"
 }
-
-# If ../facility/documentation/index.rst exists, create a facility/ link in this
-# directory so Sphinx can resolve the toctree entry in index.rst.  Done here
-# rather than in the Makefile so it works on Windows, Mac, and Linux.
-
-_conf_dir   = _os.path.dirname(__file__)
-_facility_src   = _os.path.normpath(_os.path.join(_conf_dir, '..', 'facility', 'documentation'))
-_facility_link  = _os.path.join(_conf_dir, 'facility')
-
-def _ensure_facility_link():
-    if _os.path.isdir(_facility_link):          # exists and reachable — nothing to do
-        return True
-    if _os.path.lexists(_facility_link):        # broken or stale symlink — remove it
-        _os.unlink(_facility_link)
-    try:                                    # symlink — instant and stays live
-        _os.symlink(_facility_src, _facility_link, target_is_directory=True)
-        return True
-    except (OSError, NotImplementedError):  # Windows without symlink privilege
-        pass
-    try:                                    # copy fallback — static snapshot
-        _shutil.copytree(_facility_src, _facility_link)
-        return True
-    except Exception:
-        return False
-
-if _os.path.isfile(_os.path.join(_facility_src, 'index.rst')):
-    _ensure_facility_link()
