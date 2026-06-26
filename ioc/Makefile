@@ -17,18 +17,9 @@ include $(TOP)/configure/CONFIG
 USR_CPPFLAGS += -I$(TOP)/src
 USR_CPPFLAGS += -DPVXS_IOC_API_BUILDING
 
-# site_specific/ is always on the include path for optional overrides
+# site_specific/ is always on the include path; any .cpp files there are compiled in
 SRC_DIRS += $(TOP)/site_specific
-
-# Q:DISABLE support: enabled by presence of site_specific/qdisable.cpp
-ifneq ($(wildcard $(TOP)/site_specific/qdisable.cpp),)
-pvxsIoc_SRCS += qdisable.cpp
-endif
-
-# Alarm message support: enabled by presence of site_specific/alarmmsg.cpp
-ifneq ($(wildcard $(TOP)/site_specific/alarmmsg.cpp),)
-pvxsIoc_SRCS += alarmmsg.cpp
-endif
+pvxsIoc_SRCS += $(notdir $(wildcard $(TOP)/site_specific/*.cpp))
 
 DBD += pvxsIoc.dbd
 CLEANS += pvxsIoc.dbd
