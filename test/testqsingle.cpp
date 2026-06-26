@@ -21,6 +21,7 @@
 #include <iocsh.h>
 
 #include "dblocker.h"
+#include "facilityhooks.h"
 #include "testioc.h"
 #include "utilpvt.h"
 
@@ -998,11 +999,42 @@ void testiocsh(TestClient& ctxt)
     }
 }
 
+void testPostProcessNode()
+{
+    testDiag("%s", __func__);
+
+    std::atomic<int> callCount{0};
+    std::string capturedName;
+
+    ioc::facility::setNodePostProcessor([&](dbCommon* prec, Value& node) {
+        ++callCount;
+        capturedName = prec->name;
+        if (auto desc = node["display.description"])
+            desc = "modified";
+    });
+
+    TestClient ctxt;
+    testdbPutFieldOk("test:ai.PROC", DBF_LONG, 0);
+    auto val = ctxt.get("test:ai").exec()->wait(5.0);
+
+    ioc::facility::setNodePostProcessor(nullptr);
+
+    testOk(callCount > 0, "postProcessNode was called (%d times)", int(callCount));
+    testOk(capturedName == "test:ai",
+           "postProcessNode received correct record (got '%s')", capturedName.c_str());
+
+    std::string descStr;
+    if (auto desc = val["display.description"])
+        desc.as(descStr);
+    testOk(descStr == "modified",
+           "postProcessNode modification visible in returned value (got '%s')", descStr.c_str());
+}
+
 } // namespace
 
 MAIN(testqsingle)
 {
-    testPlan(113);
+    testPlan(117);
     testSetup();
     pvxs::logger_config_env();
     generalTimeRegisterCurrentProvider("test", 1, &testTimeCurrent);
@@ -1033,6 +1065,7 @@ MAIN(testqsingle)
         testdbReadDatabase("testqsingle64.db", nullptr, nullptr);
 #endif
         ioc.init();
+        testPostProcessNode();
         testGetScalar();
         testLongString();
         testGetArray();
