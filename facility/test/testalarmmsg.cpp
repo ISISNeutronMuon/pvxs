@@ -8,6 +8,7 @@
 
 #include <testMain.h>
 #include <dbAccess.h>
+#include <dbStaticLib.h>
 #include <dbUnitTest.h>
 #include <epicsExit.h>
 
@@ -66,6 +67,31 @@ void testAlarmMessage()
     testStrEq(val["alarm.message"].as<std::string>(), "Default message");
 }
 
+void testDefaultMsgUpdate()
+{
+    testDiag("%s", __func__);
+    TestClient ctxt;
+
+    // Confirm the initial default fallback message
+    testdbPutFieldOk("test:amsg:default", DBR_DOUBLE, 95.0);
+    auto val = ctxt.get("test:amsg:default").exec()->wait(5.0);
+    testStrEq(val["alarm.message"].as<std::string>(), "Default message");
+
+    // Update Q:DEFAULT_AMSG in the static database
+    {
+        DBENTRY ent;
+        dbInitEntry(pdbbase, &ent);
+        testOk(!dbFindRecord(&ent, "test:amsg:default"), "find record test:amsg:default");
+        testOk(!dbFindInfo(&ent, "Q:DEFAULT_AMSG"), "find info Q:DEFAULT_AMSG");
+        testOk(!dbPutInfoString(&ent, "Updated message"), "dbPutInfoString");
+        dbFinishEntry(&ent);
+    }
+
+    // Re-fetch — postProcessNode reads defaultNode->string at call time, not at cache-build time
+    val = ctxt.get("test:amsg:default").exec()->wait(5.0);
+    testStrEq(val["alarm.message"].as<std::string>(), "Updated message");
+}
+
 void testAlarmMessageState()
 {
     testDiag("%s", __func__);
@@ -83,7 +109,7 @@ void testAlarmMessageState()
 
 MAIN(testalarmmsg)
 {
-    testPlan(45);
+    testPlan(51);
     testSetup();
     pvxs::logger_config_env();
     {
@@ -93,6 +119,7 @@ MAIN(testalarmmsg)
         testdbReadDatabase("testalarmmsg.db", nullptr, nullptr);
         ioc.init();
         testAlarmMessage();
+        testDefaultMsgUpdate();
         testAlarmMessageState();
     }
     epicsExitCallAtExits();

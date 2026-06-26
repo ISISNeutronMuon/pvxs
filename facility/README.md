@@ -1,6 +1,6 @@
-# site_specific/
+# facility/
 
-This directory contains optional, site-local extensions to PVXS IOC behaviour.
+This directory contains optional, facility-local extensions to PVXS IOC behaviour.
 Any `.cpp` file placed here is automatically compiled into `libpvxsIoc` by the
 build system — no Makefile editing required.  Removing a file reverts to the
 default behaviour.
@@ -74,6 +74,6 @@ struct Registrar {
 
 ## Tests
 
-Unit tests for site-specific extensions live in `test/`.  Each test links
+Unit tests for facility extensions live in `test/`.  Each test links
 against the extension file it is testing plus `libpvxsIoc`.  See the existing
 `testqdisable` and `testalarmmsg` targets in `test/Makefile` for the pattern.

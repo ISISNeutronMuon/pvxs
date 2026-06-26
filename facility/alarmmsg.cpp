@@ -26,13 +26,38 @@ DEFINE_LOGGER(_log, "pvxs.ioc.db");
 
 namespace {
 
+// Per-record cache of Q:*_AMSG info nodes, built once at initHookAfterIocBuilt.
 struct InfoCache {
+    // Sorted by info-node name for O(log n) lookup.
     std::vector<std::pair<const char*, dbInfoNode*>> fields;
-    const char* defaultMsg = nullptr;
+    // Stored as dbInfoNode* rather than const char* so that ->string is read at
+    // call time; dbPutInfoString() rewrites the string in place within the same
+    // node, so the pointer remains valid and reflects runtime changes without
+    // any cache rebuild.
+    dbInfoNode* defaultNode = nullptr;
+
+    const char* defaultMessage() const {
+        return defaultNode ? defaultNode->string : nullptr;
+    }
+
+    /** Return the string for @p key, or the Q:DEFAULT_AMSG fallback if absent. */
+    const char* lookup(const char* key) const {
+        auto cmp = [](const std::pair<const char*, dbInfoNode*>& entry, const char* k) {
+            return strcmp(entry.first, k) < 0;
+        };
+        auto it = std::lower_bound(fields.begin(), fields.end(), key, cmp);
+        if (it != fields.end() && strcmp(it->first, key) == 0)
+            return it->second->string;
+        return defaultMessage();
+    }
 };
 
 std::unordered_map<dbCommon*, InfoCache> s_infoCache;
 
+/**
+ * Scan all Q:* info fields on @p prec, build a sorted InfoCache, and store it.
+ * Called for every record at initHookAfterIocBuilt.
+ */
 InfoCache& buildAndCache(dbCommon* prec)
 {
     InfoCache& cached = s_infoCache[prec];
@@ -53,22 +78,24 @@ InfoCache& buildAndCache(dbCommon* prec)
     };
     auto def = std::lower_bound(cached.fields.begin(), cached.fields.end(), "Q:DEFAULT_AMSG", cmp);
     if (def != cached.fields.end() && strcmp(def->first, "Q:DEFAULT_AMSG") == 0)
-        cached.defaultMsg = def->second->string;
+        cached.defaultNode = def->second;
 
     return cached;
 }
 
-const char* findQInfoValue(const InfoCache& cache, const char* key)
-{
-    auto cmp = [](const std::pair<const char*, dbInfoNode*>& entry, const char* k) {
-        return strcmp(entry.first, k) < 0;
-    };
-    auto it = std::lower_bound(cache.fields.begin(), cache.fields.end(), key, cmp);
-    if (it != cache.fields.end() && strcmp(it->first, key) == 0)
-        return it->second->string;
-    return cache.defaultMsg;
-}
-
+/**
+ * Node post-processor: write alarm.message from Q:*_AMSG info fields.
+ * Called by IOCSource::get() with the record locked; prec->stat is stable.
+ *
+ * Alarm-status-to-info-key mapping:
+ *   HIHI → Q:HIHI_AMSG, HIGH → Q:HIGH_AMSG,
+ *   LOLO → Q:LOLO_AMSG, LOW  → Q:LOW_AMSG,
+ *   STATE → Q:STATE<n>_AMSG  (n = value.index from the PVA node, not the record)
+ * Any unmatched alarm or missing key falls back to Q:DEFAULT_AMSG.
+ *
+ * @param prec record pointer (locked)
+ * @param node PVA value node to be returned to the client
+ */
 void applyAlarmMessage(dbCommon* prec, pvxs::Value& node)
 {
     if (prec->stat == NO_ALARM)
@@ -83,23 +110,25 @@ void applyAlarmMessage(dbCommon* prec, pvxs::Value& node)
 
     switch(prec->stat) {
     case HIHI_ALARM:
-        stsmsg = findQInfoValue(cache, "Q:HIHI_AMSG");
+        stsmsg = cache.lookup("Q:HIHI_AMSG");
         break;
     case HIGH_ALARM:
-        stsmsg = findQInfoValue(cache, "Q:HIGH_AMSG");
+        stsmsg = cache.lookup("Q:HIGH_AMSG");
         break;
     case LOLO_ALARM:
-        stsmsg = findQInfoValue(cache, "Q:LOLO_AMSG");
+        stsmsg = cache.lookup("Q:LOLO_AMSG");
         break;
     case LOW_ALARM:
-        stsmsg = findQInfoValue(cache, "Q:LOW_AMSG");
+        stsmsg = cache.lookup("Q:LOW_AMSG");
         break;
     case STATE_ALARM: {
+        // Use value.index from the PVA node rather than any record field;
+        // the enum value is already encoded in node by IOCSource::get().
         auto index = node["value.index"].as<int32_t>();
         if (index >= 0) {
             char buf[32];
             epicsSnprintf(buf, sizeof(buf), "Q:STATE%d_AMSG", index);
-            stsmsg = findQInfoValue(cache, buf);
+            stsmsg = cache.lookup(buf);
         }
         break;
     }
@@ -111,6 +140,7 @@ void applyAlarmMessage(dbCommon* prec, pvxs::Value& node)
         node["alarm.message"] = stsmsg;
 }
 
+// Clear the cache so it is rebuilt cleanly on the next iocInit().
 void onBeginning()
 {
     s_infoCache.clear();

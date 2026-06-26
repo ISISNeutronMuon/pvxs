@@ -16,6 +16,8 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+import os as _os
+import shutil as _shutil
 import time
 
 def git_date():
@@ -219,3 +221,45 @@ breathe_default_project = "PVXS"
 breathe_projects = {
     "PVXS": "xml"
 }
+
+# If ../facility/doc/index.rst exists, link it into the build tree and
+# inject a toctree entry into index.rst.  The link is created here (not in the
+# Makefile) so the build works on Windows, Mac, and Linux without shell tricks.
+
+_conf_dir   = _os.path.dirname(__file__)
+_site_src   = _os.path.normpath(_os.path.join(_conf_dir, '..', 'facility', 'doc'))
+_site_link  = _os.path.join(_conf_dir, 'facility')
+
+def _ensure_site_link():
+    if _os.path.lexists(_site_link):
+        return True
+    try:                                    # symlink — instant and stays live
+        _os.symlink(_site_src, _site_link, target_is_directory=True)
+        return True
+    except (OSError, NotImplementedError):  # Windows without symlink privilege
+        pass
+    try:                                    # copy fallback — static snapshot
+        _shutil.copytree(_site_src, _site_link)
+        return True
+    except Exception:
+        return False
+
+_has_site_docs = (
+    _os.path.isfile(_os.path.join(_site_src, 'index.rst'))
+    and _ensure_site_link()
+)
+
+def _inject_site_toctree(_app, docname, source):
+    if docname == 'index':
+        source[0] += (
+            '\n\n'
+            '.. toctree::\n'
+            '   :caption: Site-Specific Extensions\n'
+            '   :maxdepth: 2\n'
+            '\n'
+            '   facility/index\n'
+        )
+
+def setup(app):
+    if _has_site_docs:
+        app.connect('source-read', _inject_site_toctree)

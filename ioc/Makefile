@@ -17,9 +17,9 @@ include $(TOP)/configure/CONFIG
 USR_CPPFLAGS += -I$(TOP)/src
 USR_CPPFLAGS += -DPVXS_IOC_API_BUILDING
 
-# site_specific/ is always on the include path; any .cpp files there are compiled in
-SRC_DIRS += $(TOP)/site_specific
-pvxsIoc_SRCS += $(notdir $(wildcard $(TOP)/site_specific/*.cpp))
+# facility/ is always on the include path; any .cpp files there are compiled in
+SRC_DIRS += $(TOP)/facility
+pvxsIoc_SRCS += $(notdir $(wildcard $(TOP)/facility/*.cpp))
 
 DBD += pvxsIoc.dbd
 CLEANS += pvxsIoc.dbd

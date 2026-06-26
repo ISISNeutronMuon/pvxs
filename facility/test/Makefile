@@ -3,7 +3,7 @@ TOP=../..
 include $(TOP)/configure/CONFIG
 
 USR_CPPFLAGS += -I$(TOP)/ioc
-SRC_DIRS += $(TOP)/site_specific
+SRC_DIRS += $(TOP)/facility
 
 ifdef BASE_3_15
 
@@ -11,7 +11,7 @@ DBDDEPENDS_FILES += testioc.dbd$(DEP)
 testioc_DBD = base.dbd pvxsIoc.dbd
 TESTFILES += $(COMMON_DIR)/testioc.dbd
 
-ifneq ($(wildcard $(TOP)/site_specific/qdisable.cpp),)
+ifneq ($(wildcard $(TOP)/facility/qdisable.cpp),)
 TESTPROD_HOST += testqdisable
 testqdisable_SRCS += testqdisable.cpp
 testqdisable_SRCS += qdisable.cpp
@@ -21,7 +21,7 @@ TESTS += testqdisable
 TESTFILES += ../testqdisable.db
 endif
 
-ifneq ($(wildcard $(TOP)/site_specific/alarmmsg.cpp),)
+ifneq ($(wildcard $(TOP)/facility/alarmmsg.cpp),)
 TESTPROD_HOST += testalarmmsg
 testalarmmsg_SRCS += testalarmmsg.cpp
 testalarmmsg_SRCS += alarmmsg.cpp
