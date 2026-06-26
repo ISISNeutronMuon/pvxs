@@ -9,7 +9,7 @@ default behaviour.
 
 Each source file registers its behaviour at static-initialisation time (library
 load), before `iocInit()` is called.  The registration API is in
-`ioc/sitehooks.h` and lives in the `pvxs::ioc::site` namespace.
+`ioc/facilityhooks.h` and lives in the `pvxs::ioc::facility` namespace.
 
 ### Available hooks
 
@@ -22,7 +22,7 @@ load), before `iocInit()` is called.  The registration API is in
 
 ### Filtering records
 
-To suppress a record from being served as a PV, call `site::markFiltered` for
+To suppress a record from being served as a PV, call `facility::markFiltered` for
 each record name during an `addInitHookAtBeginning` callback.  Filtered records
 are excluded from the PV list, search responses, and channel-open requests.
 
@@ -46,15 +46,15 @@ fields and writes a custom `alarm.message`.
 ## Adding a new extension
 
 1. Create a `.cpp` file in this directory.
-2. Include `"sitehooks.h"`.
+2. Include `"facilityhooks.h"`.
 3. Define your logic in a static `Registrar` struct whose constructor calls the
-   relevant `pvxs::ioc::site::` registration functions.
+   relevant `pvxs::ioc::facility::` registration functions.
 4. Build — the file is picked up automatically.
 
 Minimal template:
 
 ```cpp
-#include "sitehooks.h"
+#include "facilityhooks.h"
 
 namespace {
 
@@ -65,7 +65,7 @@ void onBeginning()
 
 struct Registrar {
     Registrar() {
-        pvxs::ioc::site::addInitHookAtBeginning(onBeginning);
+        pvxs::ioc::facility::addInitHookAtBeginning(onBeginning);
     }
 } s_registrar;
 

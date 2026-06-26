@@ -31,7 +31,7 @@ LIBRARY += pvxsIoc
 SHRLIB_VERSION = $(PVXS_MAJOR_VERSION).$(PVXS_MINOR_VERSION)
 
 pvxsIoc_SRCS += iochooks.cpp
-pvxsIoc_SRCS += sitehooks.cpp
+pvxsIoc_SRCS += facilityhooks.cpp
 
 ifdef BASE_3_15
 

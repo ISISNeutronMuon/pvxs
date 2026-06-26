@@ -8,7 +8,7 @@
 #include <cstring>
 
 #include "dbentry.h"
-#include "sitehooks.h"
+#include "facilityhooks.h"
 
 namespace {
 
@@ -26,14 +26,14 @@ void populateFilteredNames()
     for (long status = dbFirstRecordType(dbEntry); !status; status = dbNextRecordType(dbEntry)) {
         for (status = dbFirstRecord(dbEntry); !status; status = dbNextRecord(dbEntry)) {
             if (isQDisabled(static_cast<dbCommon*>(dbEntry->precnode->precord)))
-                pvxs::ioc::site::markFiltered(dbEntry->precnode->recordname);
+                pvxs::ioc::facility::markFiltered(dbEntry->precnode->recordname);
         }
     }
 }
 
 struct Registrar {
     Registrar() {
-        pvxs::ioc::site::addInitHookAtBeginning(populateFilteredNames);
+        pvxs::ioc::facility::addInitHookAtBeginning(populateFilteredNames);
     }
 } s_registrar;
 

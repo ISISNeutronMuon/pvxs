@@ -26,7 +26,7 @@
 #include "dberrormessage.h"
 #include "dblocker.h"
 #include "iocsource.h"
-#include "sitehooks.h"
+#include "facilityhooks.h"
 #include "singlesource.h"
 #include "singlesrcsubscriptionctx.h"
 #include "credentials.h"
@@ -403,7 +403,7 @@ SingleSource::SingleSource()
     DBEntry dbEntry;
     for (long status = dbFirstRecordType(dbEntry); !status; status = dbNextRecordType(dbEntry)) {
         for (status = dbFirstRecord(dbEntry); !status; status = dbNextRecord(dbEntry)) {
-            if (!site::isNameFiltered(dbEntry->precnode->recordname))
+            if (!facility::isNameFiltered(dbEntry->precnode->recordname))
                 names->insert(dbEntry->precnode->recordname);
         }
     }
@@ -436,7 +436,7 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
         return;
     }
 
-    if (site::isNameFiltered(sourceName))
+    if (facility::isNameFiltered(sourceName))
         return;
 
     log_debug_printf(_logname, "Accepting channel for '%s'\n", sourceName);
@@ -472,7 +472,7 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
 void SingleSource::onSearch(Search& searchOperation) {
     for (auto& pv: searchOperation) {
         if (!dbChannelTest(pv.name())) {
-            if (site::isNameFiltered(pv.name()))
+            if (facility::isNameFiltered(pv.name()))
                 continue;
             pv.claim();
             log_debug_printf(_logname, "Claiming '%s'\n", pv.name());

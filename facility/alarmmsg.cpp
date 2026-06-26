@@ -17,7 +17,7 @@
 #include <dbStaticLib.h>
 
 #include "dbentry.h"
-#include "sitehooks.h"
+#include "facilityhooks.h"
 
 // include last to avoid clash of #define printf with other headers
 #include <epicsStdio.h>
@@ -159,9 +159,9 @@ void onIocBuilt()
 
 struct Registrar {
     Registrar() {
-        pvxs::ioc::site::addInitHookAtBeginning(onBeginning);
-        pvxs::ioc::site::addInitHookAfterIocBuilt(onIocBuilt);
-        pvxs::ioc::site::setNodePostProcessor(applyAlarmMessage);
+        pvxs::ioc::facility::addInitHookAtBeginning(onBeginning);
+        pvxs::ioc::facility::addInitHookAfterIocBuilt(onIocBuilt);
+        pvxs::ioc::facility::setNodePostProcessor(applyAlarmMessage);
     }
 } s_registrar;
 

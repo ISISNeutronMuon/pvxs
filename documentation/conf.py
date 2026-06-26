@@ -222,46 +222,29 @@ breathe_projects = {
     "PVXS": "xml"
 }
 
-# If ../facility/documentation/index.rst exists, link it into the build tree and
-# inject a toctree entry into index.rst.  The link is created here (not in the
-# Makefile) so the build works on Windows, Mac, and Linux without shell tricks.
+# If ../facility/documentation/index.rst exists, create a facility/ link in this
+# directory so Sphinx can resolve the toctree entry in index.rst.  Done here
+# rather than in the Makefile so it works on Windows, Mac, and Linux.
 
 _conf_dir   = _os.path.dirname(__file__)
-_site_src   = _os.path.normpath(_os.path.join(_conf_dir, '..', 'facility', 'documentation'))
-_site_link  = _os.path.join(_conf_dir, 'facility')
+_facility_src   = _os.path.normpath(_os.path.join(_conf_dir, '..', 'facility', 'documentation'))
+_facility_link  = _os.path.join(_conf_dir, 'facility')
 
-def _ensure_site_link():
-    if _os.path.isdir(_site_link):          # exists and reachable — nothing to do
+def _ensure_facility_link():
+    if _os.path.isdir(_facility_link):          # exists and reachable — nothing to do
         return True
-    if _os.path.lexists(_site_link):        # broken or stale symlink — remove it
-        _os.unlink(_site_link)
+    if _os.path.lexists(_facility_link):        # broken or stale symlink — remove it
+        _os.unlink(_facility_link)
     try:                                    # symlink — instant and stays live
-        _os.symlink(_site_src, _site_link, target_is_directory=True)
+        _os.symlink(_facility_src, _facility_link, target_is_directory=True)
         return True
     except (OSError, NotImplementedError):  # Windows without symlink privilege
         pass
     try:                                    # copy fallback — static snapshot
-        _shutil.copytree(_site_src, _site_link)
+        _shutil.copytree(_facility_src, _facility_link)
         return True
     except Exception:
         return False
 
-_has_site_docs = (
-    _os.path.isfile(_os.path.join(_site_src, 'index.rst'))
-    and _ensure_site_link()
-)
-
-def _inject_site_toctree(_app, docname, source):
-    if docname == 'index':
-        source[0] += (
-            '\n\n'
-            '.. toctree::\n'
-            '   :caption: Site-Specific Extensions\n'
-            '   :maxdepth: 2\n'
-            '\n'
-            '   facility/index\n'
-        )
-
-def setup(app):
-    if _has_site_docs:
-        app.connect('source-read', _inject_site_toctree)
+if _os.path.isfile(_os.path.join(_facility_src, 'index.rst')):
+    _ensure_facility_link()

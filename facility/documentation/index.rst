@@ -8,7 +8,7 @@ by the ``facility/`` directory.  Each extension is compiled automatically into
 ``libpvxsIoc``; removing a file reverts to the default behaviour.  See the
 ``facility/README.md`` for developer guidance on adding new extensions.
 
-.. _site_alarmmsg:
+.. _facility_alarmmsg:
 
 Custom Alarm Messages
 ---------------------
@@ -64,7 +64,7 @@ Example database fragment::
         info(Q:DEFAULT_AMSG, "Temperature out of range")
     }
 
-.. _site_qdisable:
+.. _facility_qdisable:
 
 Suppressing PVs from the Network (Q:DISABLE)
 ---------------------------------------------
@@ -87,8 +87,8 @@ or any record that should remain accessible via Channel Access but not via PVA.
 Extension API
 -------------
 
-Facility extensions register themselves via the ``pvxs::ioc::site``
-namespace declared in ``ioc/sitehooks.h``.
+Facility extensions register themselves via the ``pvxs::ioc::facility``
+namespace declared in ``ioc/facilityhooks.h``.
 
 .. list-table::
    :header-rows: 1

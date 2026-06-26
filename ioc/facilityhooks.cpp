@@ -12,14 +12,14 @@
 
 #include <initHooks.h>
 
-#include "sitehooks.h"
+#include "facilityhooks.h"
 
 namespace pvxs {
 namespace ioc {
-namespace site {
+namespace facility {
 
 namespace {
-// Function-local statics avoid init-order issues with site-specific registrars.
+// Function-local statics avoid init-order issues with facility-specific registrars.
 std::vector<std::function<void()>>& hooksAtBeginning() {
     static std::vector<std::function<void()>> v;
     return v;
@@ -36,21 +36,21 @@ std::set<std::string>& filteredNames() {
     static std::set<std::string> s;
     return s;
 }
-void siteHookDispatch(initHookState state) noexcept
+void facilityHookDispatch(initHookState state) noexcept
 {
     if (state == initHookAtBeginning)
         for (auto& fn : hooksAtBeginning()) fn();
     else if (state == initHookAfterIocBuilt)
         for (auto& fn : hooksAfterIocBuilt()) fn();
 }
-struct SiteHooksRegistrar {
-    SiteHooksRegistrar() { initHookRegister(siteHookDispatch); }
+struct FacilityHooksRegistrar {
+    FacilityHooksRegistrar() { initHookRegister(facilityHookDispatch); }
 } s_registrar;
 } // namespace
 
 /**
  * Add a record name to the set of filtered (suppressed) PV names.
- * Should be called during an addInitHookAtBeginning callback, before SingleSource is constructed.
+ * Should be called during an addInitHookAtBeginning callback before SingleSource is constructed.
  *
  * @param name bare record name (not a dotted field name)
  */
@@ -122,6 +122,6 @@ void postProcessNode(dbCommon* prec, Value& node)
     if (fn) fn(prec, node);
 }
 
-} // site
+} // facility
 } // ioc
 } // pvxs

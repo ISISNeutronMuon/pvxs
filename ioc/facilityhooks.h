@@ -4,8 +4,8 @@
  * in file LICENSE that is included with this distribution.
  */
 
-#ifndef PVXS_SITEHOOKS_H
-#define PVXS_SITEHOOKS_H
+#ifndef PVXS_FACILITYHOOKS_H
+#define PVXS_FACILITYHOOKS_H
 
 #include <functional>
 #include <epicsTypes.h>
@@ -15,9 +15,9 @@
 
 namespace pvxs {
 namespace ioc {
-namespace site {
+namespace facility {
 
-// --- Registration (called by site-specific code) ---
+// --- Registration (called by facility-specific code) ---
 
 // Pre-populate the name-based filter set (accepts bare record names).
 void markFiltered(const char* name);
@@ -38,8 +38,8 @@ bool isNameFiltered(const char* pvName);
 
 void postProcessNode(dbCommon* prec, Value& node);
 
-} // site
+} // facility
 } // ioc
 } // pvxs
 
-#endif // PVXS_SITEHOOKS_H
+#endif // PVXS_FACILITYHOOKS_H
