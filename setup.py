@@ -19,9 +19,9 @@ def generate_facilityregister():
     """Generate facility/facilityregister.cpp from facility/*.cpp source names."""
     srcs = sorted(f for f in glob('facility/*.cpp')
                   if os.path.basename(f) != 'facilityregister.cpp')
-    with open('facility/facilityregister.cpp', 'w', encoding='utf-8') as fh:
-        subprocess.run([sys.executable, 'facility/gen_facilityregister.py'] + srcs,
-                       stdout=fh, check=True)
+    with open('facility/facilityregister.cpp', 'w') as fh:
+        subprocess.check_call([sys.executable, 'facility/gen_facilityregister.py'] + srcs,
+                              stdout=fh)
 
 
 generate_facilityregister()
