@@ -31,6 +31,9 @@ PVXS_IOC_API void addInitHookAfterIocBuilt(std::function<void()> fn);
 // Called at the end of IOCSource::get() with the record locked; may modify any field in node.
 PVXS_IOC_API void setNodePostProcessor(std::function<void(dbCommon*, Value&)> fn);
 
+// --- Called once from pvxsBaseRegistrar ---
+void registerHooks();
+
 // --- Dispatch (called by core ioc/ code) ---
 
 // Returns true if the record name was pre-registered via markFiltered.

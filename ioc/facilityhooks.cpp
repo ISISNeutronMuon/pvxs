@@ -43,10 +43,12 @@ void facilityHookDispatch(initHookState state) noexcept
     else if (state == initHookAfterIocBuilt)
         for (auto& fn : hooksAfterIocBuilt()) fn();
 }
-struct FacilityHooksRegistrar {
-    FacilityHooksRegistrar() { initHookRegister(facilityHookDispatch); }
-} s_registrar;
 } // namespace
+
+void registerHooks()
+{
+    initHookRegister(facilityHookDispatch);
+}
 
 /**
  * Add a record name to the set of filtered (suppressed) PV names.
