@@ -11,6 +11,8 @@
 #include <utility>
 #include <vector>
 
+#include <pvxs/iochooks.h>
+
 struct dbCommon;   // pointer-only use; full definition not needed here
 struct dbInfoNode; // pointer-only use; full definition not needed here
 
@@ -19,9 +21,19 @@ namespace pvxs { namespace ioc { namespace facility {
 // Per-record cache of dbInfoNode pointers built once at initHookAfterIocBuilt.
 // Stores dbInfoNode* rather than const char* so that runtime changes via
 // dbPutInfoString() are reflected without rebuilding the cache.
-class DbInfoCache {
+//
+// PVXS_IOC_API is required here: out-of-line methods (build(), buildAll(),
+// Entry::lookup(), Entry::defaultValue()) are defined in dbinfocache.cpp and
+// compiled only into pvxsIoc. Other facility/*.cpp files (e.g. alarmmsg.cpp)
+// are recompiled directly into each test/IOC binary rather than linked from
+// pvxsIoc, so on Windows those callers must import these symbols across the
+// DLL boundary; without dllexport/dllimport the MSVC linker can't see them
+// (GCC/Clang exports everything by default, so this only goes wrong on Windows).
+// The nested Entry struct needs its own annotation since MSVC does not
+// propagate a class's dllexport to its nested types.
+class PVXS_IOC_API DbInfoCache {
 public:
-    struct Entry {
+    struct PVXS_IOC_API Entry {
         // Info nodes whose names match the build prefix, sorted by name.
         std::vector<std::pair<const char*, dbInfoNode*>> fields;
         // Optional fallback node (e.g. "Q:DEFAULT_AMSG").
