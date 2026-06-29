@@ -19,7 +19,7 @@ namespace ioc {
 namespace facility {
 
 namespace {
-// Function-local static methods avoid init-order issues with facility-specific registrars.
+// Function-local statics avoid init-order issues with facility-specific registrars.
 std::vector<std::function<void()>>& hooksAtBeginning() {
     static std::vector<std::function<void()>> v;
     return v;
