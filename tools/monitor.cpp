@@ -13,11 +13,24 @@
 #include <epicsVersion.h>
 #include <epicsGetopt.h>
 #include <epicsThread.h>
+#include <epicsTime.h>
 
 #include <pvxs/client.h>
 #include <pvxs/log.h>
 #include "utilpvt.h"
 #include "evhelper.h"
+
+#if EPICS_VERSION_INT < VERSION_INT(7, 0, 6, 1)
+static inline
+    std::ostream& operator<<(std::ostream& strm, const epicsTime& ts)
+{
+    char temp[64];
+
+    (void)ts.strftime(temp, sizeof(temp), "%Y-%m-%d %H:%M:%S.%09f");
+    temp[sizeof(temp)-1u] = '\0';
+    return strm<<temp;
+}
+#endif
 
 using namespace pvxs;
 
@@ -95,7 +108,7 @@ int main(int argc, char *argv[])
         auto ctxt(client::Context::fromEnv());
 
         if(verbose)
-            std::cout<<"Effective config\n"<<ctxt.config();
+            std::cerr<<"Effective config\n"<<ctxt.config();
 
         // space for every subscription and one more for SigInt
         MPMCFIFO<std::shared_ptr<client::Subscription>> workqueue(argc-optind+1);
@@ -144,6 +157,7 @@ int main(int argc, char *argv[])
                 std::cout<<update.format()
                            .format(format)
                            .arrayLimit(arrLimit);
+                std::cout.flush();
 
             }catch(client::Finished& conn) {
                 log_info_printf(app, "%s POP Finished\n", name.c_str());
@@ -152,7 +166,7 @@ int main(int argc, char *argv[])
                 remaining--;
 
             }catch(client::Connected& conn) {
-                std::cerr<<name.c_str()<<" Connected to "<<conn.peerName<<"\n";
+                std::cerr<<conn.time<<" "<<name.c_str()<<" Connected to "<<conn.peerName<<"\n";
                 if(app.test(Level::Debug)) {
                     client::SubscriptionStat stats;
                     mon->stats(stats);
@@ -160,7 +174,7 @@ int main(int argc, char *argv[])
                 }
 
             }catch(client::Disconnect& conn) {
-                std::cerr<<name.c_str()<<" Disconnected\n";
+                std::cerr<<conn.time<<" "<<name.c_str()<<" Disconnected\n";
 
             }catch(std::exception& err) {
                 std::cerr<<name.c_str()<<" Error "<<typeid (err).name()<<" : "<<err.what()<<"\n";
