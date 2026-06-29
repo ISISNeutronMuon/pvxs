@@ -47,6 +47,7 @@ void facilityHookDispatch(initHookState state) noexcept
 
 void registerHooks()
 {
+    registerFacilities();
     initHookRegister(facilityHookDispatch);
 }
 

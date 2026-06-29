@@ -31,10 +31,10 @@ void populateFilteredNames()
     }
 }
 
-struct Registrar {
-    Registrar() {
-        pvxs::ioc::facility::addInitHookAtBeginning(populateFilteredNames);
-    }
-} s_registrar;
-
 } // namespace
+
+namespace pvxs { namespace ioc { namespace facility {
+void registerQdisable() {
+    addInitHookAtBeginning(populateFilteredNames);
+}
+}}} // pvxs::ioc::facility

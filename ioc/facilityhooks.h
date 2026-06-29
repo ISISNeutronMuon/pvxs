@@ -34,6 +34,10 @@ PVXS_IOC_API void setNodePostProcessor(std::function<void(dbCommon*, Value&)> fn
 // --- Called once from pvxsBaseRegistrar ---
 void registerHooks();
 
+// Defined in the generated facilityregister.cpp; calls every registerXxx()
+// function discovered by facility/gen_facilityregister.py at build time.
+void registerFacilities();
+
 // --- Dispatch (called by core ioc/ code) ---
 
 // Returns true if the record name was pre-registered via markFiltered.

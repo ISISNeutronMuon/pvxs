@@ -2,6 +2,8 @@
 
 import os
 import re
+import subprocess
+import sys
 
 from glob import glob
 
@@ -12,6 +14,18 @@ from setuptools_dso import DSO, Extension, setup, build_dso, ProbeToolchain
 from epicscorelibs.config import get_config_var
 import epicscorelibs.path
 import epicscorelibs.version
+
+def generate_facilityregister():
+    """Generate facility/facilityregister.cpp from facility/*.cpp source names."""
+    srcs = sorted(f for f in glob('facility/*.cpp')
+                  if os.path.basename(f) != 'facilityregister.cpp')
+    with open('facility/facilityregister.cpp', 'w', encoding='utf-8') as fh:
+        subprocess.run([sys.executable, 'facility/gen_facilityregister.py'] + srcs,
+                       stdout=fh, check=True)
+
+
+generate_facilityregister()
+
 
 def pvxsversion():
     with open(os.path.join('configure', 'CONFIG_PVXS_VERSION'), 'r') as F:
@@ -598,7 +612,7 @@ def define_DSOS(self):
         "ioc/pvalink_jlif.cpp",
         "ioc/pvalink_link.cpp",
         "ioc/pvalink_lset.cpp",
-    ]
+    ] + glob('facility/*.cpp')
 
     probe = ProbeToolchain()
 
