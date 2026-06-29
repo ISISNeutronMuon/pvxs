@@ -11,7 +11,7 @@ FACILITY_REGISTRAR_SRCS := $(filter-out \
 # ioc/ picks up facilityregister.cpp via its SRC_DIRS wildcard; it must
 # exist before the ioc build starts (enforced by ioc_DEPEND_DIRS = facility
 # in the top-level Makefile).
-all: $(TOP)/facility/facilityregister.cpp
+all install: $(TOP)/facility/facilityregister.cpp
 
 $(TOP)/facility/facilityregister.cpp: $(FACILITY_REGISTRAR_SRCS) $(TOP)/facility/gen_facilityregister.py
 	python3 $(TOP)/facility/gen_facilityregister.py \
