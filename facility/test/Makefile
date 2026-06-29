@@ -18,6 +18,9 @@ test$(1)_LIBS += pvxsIoc pvxs $$(EPICS_BASE_IOC_LIBS)
 TESTS += test$(1)
 endef
 
+# Facility tests use TestIOC and dbUnitTest.h, both of which require base >= 3.15.
+ifdef BASE_3_15
+
 # For each <name>.cpp in facility/, add a test binary if test<name>.cpp exists here.
 # Does not handle tests that need extra source files, extra libs, or a different
 # binary name than test<name>; add those manually below.
@@ -33,6 +36,7 @@ _unused := $(foreach src,$(notdir $(wildcard $(TOP)/facility/*.cpp)),\
     $(if $(wildcard ../test$(basename $(src)).db),\
       $(eval TESTFILES += ../test$(basename $(src)).db))))
 
+endif # BASE_3_15
 
 TESTSCRIPTS_HOST += $(TESTS:%=%.t)
 ifneq ($(filter $(T_A),$(CROSS_COMPILER_RUNTEST_ARCHS)),)
