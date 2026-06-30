@@ -39,9 +39,10 @@ _unused := $(foreach src,$(notdir $(wildcard $(TOP)/facility/*.cpp)),\
 endif # BASE_3_15
 
 TESTSCRIPTS_HOST += $(TESTS:%=%.t)
-ifneq ($(filter $(T_A),$(CROSS_COMPILER_RUNTEST_ARCHS)),)
-TESTPROD = $(TESTPROD_HOST)
-TESTSCRIPTS = $(TESTSCRIPTS_HOST)
-endif
+# No CROSS_COMPILER_RUNTEST_ARCHS block here: these tests use a PVAccess
+# client/server pair and require a working loopback network, which is not
+# available in the RTEMS QEMU (PC686) emulation environment.  The main
+# test/Makefile has the same block but its self-contained (non-IOC) tests
+# do work there; facility tests do not.
 
 include $(TOP)/configure/RULES
