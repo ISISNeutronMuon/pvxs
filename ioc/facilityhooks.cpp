@@ -28,9 +28,9 @@ std::vector<std::function<void()>>& hooksAfterIocBuilt() {
     static std::vector<std::function<void()>> v;
     return v;
 }
-std::function<void(dbCommon*, Value&)>& nodePostProcessorFn() {
-    static std::function<void(dbCommon*, Value&)> fn;
-    return fn;
+std::vector<std::function<void(dbCommon*, Value&)>>& nodePostProcessors() {
+    static std::vector<std::function<void(dbCommon*, Value&)>> v;
+    return v;
 }
 std::set<std::string>& filteredNames() {
     static std::set<std::string> s;
@@ -102,18 +102,18 @@ void addInitHookAfterIocBuilt(std::function<void()> fn)
 /**
  * Register a node post-processor, called at the end of every IOCSource::get()
  * after all standard fields have been populated.
- * Only one post-processor may be registered; a subsequent call replaces the previous one.
- * The record is locked for the duration of the call.
+ * Multiple processors may be registered; they are fired in registration order.
+ * The record is locked for the duration of each call.
  *
  * @param fn callback receiving the record pointer and the mutable PVA value node
  */
-void setNodePostProcessor(std::function<void(dbCommon*, Value&)> fn)
+void addNodePostProcessor(std::function<void(dbCommon*, Value&)> fn)
 {
-    nodePostProcessorFn() = std::move(fn);
+    nodePostProcessors().push_back(std::move(fn));
 }
 
 /**
- * Invoke the registered node post-processor, if any.
+ * Invoke all registered node post-processors in registration order.
  * Called by IOCSource::get() after all standard fields have been written to node.
  *
  * @param prec pointer to the EPICS record (locked by the caller)
@@ -121,8 +121,8 @@ void setNodePostProcessor(std::function<void(dbCommon*, Value&)> fn)
  */
 void postProcessNode(dbCommon* prec, Value& node)
 {
-    auto& fn = nodePostProcessorFn();
-    if (fn) fn(prec, node);
+    for (auto& fn : nodePostProcessors())
+        fn(prec, node);
 }
 
 } // facility

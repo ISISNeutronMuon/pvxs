@@ -83,6 +83,6 @@ namespace pvxs { namespace ioc { namespace facility {
 void registerAlarmmsg() {
     addInitHookAtBeginning(onBeginning);
     addInitHookAfterIocBuilt(onIocBuilt);
-    setNodePostProcessor(applyAlarmMessage);
+    addNodePostProcessor(applyAlarmMessage);
 }
 }}} // pvxs::ioc::facility

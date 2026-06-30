@@ -27,9 +27,9 @@ PVXS_IOC_API void markFiltered(const char* name);
 PVXS_IOC_API void addInitHookAtBeginning(std::function<void()> fn);
 PVXS_IOC_API void addInitHookAfterIocBuilt(std::function<void()> fn);
 
-// Single node post-processor; replaces any previously registered one.
+// Multiple callbacks may be registered; all are fired in registration order.
 // Called at the end of IOCSource::get() with the record locked; may modify any field in node.
-PVXS_IOC_API void setNodePostProcessor(std::function<void(dbCommon*, Value&)> fn);
+PVXS_IOC_API void addNodePostProcessor(std::function<void(dbCommon*, Value&)> fn);
 
 // --- Called once from pvxsBaseRegistrar ---
 void registerHooks();
