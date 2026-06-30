@@ -87,8 +87,14 @@ or any record that should remain accessible via Channel Access but not via PVA.
 Extension API
 -------------
 
-Facility extensions register themselves via the ``pvxs::ioc::facility``
-namespace declared in ``ioc/facilityhooks.h``.
+Facility extensions are picked up automatically from ``facility/*.cpp``.  Each
+file must define exactly one ``registerXxx()`` function in the
+``pvxs::ioc::facility`` namespace, where ``Xxx`` is the CamelCase basename of
+the file (e.g. ``alarmmsg.cpp`` → ``registerAlarmmsg()``).  The build system
+collects these functions and calls them all from ``pvxsBaseRegistrar()`` before
+``iocInit()`` runs.
+
+The registration functions declared in ``ioc/facilityhooks.h`` are:
 
 .. list-table::
    :header-rows: 1

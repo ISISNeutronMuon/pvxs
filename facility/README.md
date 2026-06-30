@@ -7,9 +7,16 @@ default behaviour.
 
 ## How it works
 
-Each source file registers its behaviour at static-initialisation time (library
-load), before `iocInit()` is called.  The registration API is in
-`ioc/facilityhooks.h` and lives in the `pvxs::ioc::facility` namespace.
+Each source file defines a `registerXxx()` function in the
+`pvxs::ioc::facility` namespace, where `Xxx` is the CamelCase basename of the
+file (e.g. `alarmmsg.cpp` → `registerAlarmmsg()`).  At build time,
+`gen_facilityregister.py` scans the directory, collects every such function,
+and generates `facilityregister.cpp` which calls them all from
+`registerFacilities()`.  `registerFacilities()` is invoked from
+`pvxsBaseRegistrar()`, before `iocInit()` is called.
+
+The registration API is in `ioc/facilityhooks.h` and lives in the
+`pvxs::ioc::facility` namespace.
 
 ### Available hooks
 
@@ -47,11 +54,14 @@ fields and writes a custom `alarm.message`.
 
 1. Create a `.cpp` file in this directory.
 2. Include `"facilityhooks.h"`.
-3. Define your logic in a static `Registrar` struct whose constructor calls the
-   relevant `pvxs::ioc::facility::` registration functions.
-4. Build — the file is picked up automatically.
+3. Define a `registerXxx()` function in the `pvxs::ioc::facility` namespace
+   (where `Xxx` is the CamelCase basename of your file) and call the relevant
+   registration functions inside it.  Do not use namespace-scope static objects
+   — they produce GCC static-constructor symbols that fail the CDT check.
+4. Build — `gen_facilityregister.py` discovers the function automatically and
+   wires it into `registerFacilities()`.
 
-Minimal template:
+Minimal template (file named `myextension.cpp`):
 
 ```cpp
 #include "facilityhooks.h"
@@ -63,13 +73,13 @@ void onBeginning()
     // called at initHookAtBeginning — database is loaded, IOC not yet running
 }
 
-struct Registrar {
-    Registrar() {
-        pvxs::ioc::facility::addInitHookAtBeginning(onBeginning);
-    }
-} s_registrar;
-
 } // namespace
+
+namespace pvxs { namespace ioc { namespace facility {
+void registerMyextension() {
+    addInitHookAtBeginning(onBeginning);
+}
+}}} // pvxs::ioc::facility
 ```
 
 ## Tests
