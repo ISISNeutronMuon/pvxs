@@ -239,15 +239,11 @@ void getTimeAlarm(dbChannel* pChannel,
     } // DBE_ALARM
     if(options & DBR_TIME) {
         node["timeStamp.secondsPastEpoch"] = meta.time.secPastEpoch + POSIX_TIME_AT_EPICS_EPOCH;
-        node["timeStamp.nanoseconds"] = meta.time.nsec & ~info.nsecMask;
+        node["timeStamp.nanoseconds"] = meta.time.nsec;
     }
 #if DBR_UTAG
-    if(options & DBR_UTAG) {
-        auto utag = meta.utag;
-        if(info.nsecMask)
-            utag = meta.time.nsec & info.nsecMask;
-        node["timeStamp.userTag"] = utag;
-    }
+    if(options & DBR_UTAG)
+        node["timeStamp.userTag"] = meta.utag;
 #endif
 }
 

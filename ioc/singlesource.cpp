@@ -281,7 +281,6 @@ void singleGet(const SingleInfo& info,
     auto& pDbChannel(info.chan);
     try {
         auto returnValue = valuePrototype.cloneEmpty();
-        // TODO: MappingInfo::nsecMask
         IOCSource::initialize(returnValue, info, pDbChannel);
         {
             DBLocker F(pDbChannel->addr.precord); // lock
