@@ -11,9 +11,9 @@ include src/pvxs/*.h
 include src/pvxs/*.h@
 include src/os/default/*.cpp
 include src/os/WIN32/*.cpp
-include facility/*.cpp
-include facility/*.h
-include facility/gen_facilityregister.py
+include site/*.cpp
+include site/*.h
+include site/gen_siteregister.py
 
 include ioc/*.h
 include ioc/*.c

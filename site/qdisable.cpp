@@ -8,7 +8,7 @@
 #include <cstring>
 
 #include "dbentry.h"
-#include "facilityhooks.h"
+#include "sitehooks.h"
 
 namespace {
 
@@ -26,15 +26,15 @@ void populateFilteredNames()
     for (long status = dbFirstRecordType(dbEntry); !status; status = dbNextRecordType(dbEntry)) {
         for (status = dbFirstRecord(dbEntry); !status; status = dbNextRecord(dbEntry)) {
             if (isQDisabled(static_cast<dbCommon*>(dbEntry->precnode->precord)))
-                pvxs::ioc::facility::markFiltered(dbEntry->precnode->recordname);
+                pvxs::ioc::site::markFiltered(dbEntry->precnode->recordname);
         }
     }
 }
 
 } // namespace
 
-namespace pvxs { namespace ioc { namespace facility {
+namespace pvxs { namespace ioc { namespace site {
 void registerQdisable() {
     addInitHookAtBeginning(populateFilteredNames);
 }
-}}} // pvxs::ioc::facility
+}}} // pvxs::ioc::site

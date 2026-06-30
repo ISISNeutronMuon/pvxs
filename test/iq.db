@@ -39,6 +39,7 @@ record(waveform, "$(N)I") {
         "$(N)iq":{"I": {+channel:"VAL"}}
     })
     info(Q:form, "Engineering")
+    info(Q:PREC_ZERO, "1")
 }
 
 record(waveform, "$(N)Q") {
@@ -50,4 +51,5 @@ record(waveform, "$(N)Q") {
         "$(N)iq":{"Q": {+channel:"VAL", +trigger:"*"}}
     })
     info(Q:form, "Engineering")
+    info(Q:PREC_ZERO, "1")
 }

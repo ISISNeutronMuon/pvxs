@@ -14,7 +14,7 @@
 #include "dbentry.h"
 #include "dbinfocache.h"
 
-namespace pvxs { namespace ioc { namespace facility {
+namespace pvxs { namespace ioc { namespace site {
 
 const char* DbInfoCache::Entry::defaultValue() const {
     return defaultNode ? defaultNode->string : nullptr;
@@ -65,4 +65,4 @@ void DbInfoCache::buildAll(const char* prefix, const char* defaultKey)
             build(static_cast<dbCommon*>(ent->precnode->precord), prefix, defaultKey);
 }
 
-}}} // pvxs::ioc::facility
+}}} // pvxs::ioc::site

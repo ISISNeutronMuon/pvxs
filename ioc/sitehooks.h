@@ -4,8 +4,8 @@
  * in file LICENSE that is included with this distribution.
  */
 
-#ifndef PVXS_FACILITYHOOKS_H
-#define PVXS_FACILITYHOOKS_H
+#ifndef PVXS_SITEHOOKS_H
+#define PVXS_SITEHOOKS_H
 
 #include <functional>
 #include <epicsTypes.h>
@@ -16,9 +16,9 @@
 
 namespace pvxs {
 namespace ioc {
-namespace facility {
+namespace site {
 
-// --- Registration (called by facility-specific code) ---
+// --- Registration (called by site-specific code) ---
 
 // Pre-populate the name-based filter set (accepts bare record names).
 PVXS_IOC_API void markFiltered(const char* name);
@@ -34,9 +34,9 @@ PVXS_IOC_API void addNodePostProcessor(std::function<void(dbCommon*, Value&)> fn
 // --- Called once from pvxsBaseRegistrar ---
 void registerHooks();
 
-// Defined in the generated facilityregister.cpp; calls every registerXxx()
-// function discovered by facility/gen_facilityregister.py at build time.
-void registerFacilities();
+// Defined in the generated siteregister.cpp; calls every registerXxx()
+// function discovered by site/gen_siteregister.py at build time.
+void registerSiteExtensions();
 
 // --- Dispatch (called by core ioc/ code) ---
 
@@ -46,8 +46,8 @@ bool isNameFiltered(const char* pvName);
 
 void postProcessNode(dbCommon* prec, Value& node);
 
-} // facility
+} // site
 } // ioc
 } // pvxs
 
-#endif // PVXS_FACILITYHOOKS_H
+#endif // PVXS_SITEHOOKS_H

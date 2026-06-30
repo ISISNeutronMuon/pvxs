@@ -15,16 +15,16 @@ from epicscorelibs.config import get_config_var
 import epicscorelibs.path
 import epicscorelibs.version
 
-def generate_facilityregister():
-    """Generate facility/facilityregister.cpp from facility/*.cpp source names."""
-    srcs = sorted(f for f in glob('facility/*.cpp')
-                  if os.path.basename(f) != 'facilityregister.cpp')
-    with open('facility/facilityregister.cpp', 'w') as fh:
-        subprocess.check_call([sys.executable, 'facility/gen_facilityregister.py'] + srcs,
+def generate_siteregister():
+    """Generate site/siteregister.cpp from site/*.cpp source names."""
+    srcs = sorted(f for f in glob('site/*.cpp')
+                  if os.path.basename(f) != 'siteregister.cpp')
+    with open('site/siteregister.cpp', 'w') as fh:
+        subprocess.check_call([sys.executable, 'site/gen_siteregister.py'] + srcs,
                               stdout=fh)
 
 
-generate_facilityregister()
+generate_siteregister()
 
 
 def pvxsversion():
@@ -588,7 +588,7 @@ def define_DSOS(self):
         "ioc/credentials.cpp",
         "ioc/dberrormessage.cpp",
         "ioc/demo.cpp",
-        "ioc/facilityhooks.cpp",
+        "ioc/sitehooks.cpp",
         "ioc/field.cpp",
         "ioc/fielddefinition.cpp",
         "ioc/fieldname.cpp",
@@ -612,7 +612,7 @@ def define_DSOS(self):
         "ioc/pvalink_jlif.cpp",
         "ioc/pvalink_link.cpp",
         "ioc/pvalink_lset.cpp",
-    ] + glob('facility/*.cpp')
+    ] + glob('site/*.cpp')
 
     probe = ProbeToolchain()
 

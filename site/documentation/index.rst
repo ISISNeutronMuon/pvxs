@@ -1,14 +1,14 @@
-.. _facility:
+.. _site:
 
-Facility IOC Extensions
+Site IOC Extensions
 ========================
 
-This section covers facility-local extensions to PVXS IOC behaviour provided
-by the ``facility/`` directory.  Each extension is compiled automatically into
+This section covers site-local extensions to PVXS IOC behaviour provided
+by the ``site/`` directory.  Each extension is compiled automatically into
 ``libpvxsIoc``; removing a file reverts to the default behaviour.  See the
-``facility/README.md`` for developer guidance on adding new extensions.
+``site/README.md`` for developer guidance on adding new extensions.
 
-.. _facility_alarmmsg:
+.. _site_alarmmsg:
 
 Custom Alarm Messages
 ---------------------
@@ -64,7 +64,34 @@ Example database fragment::
         info(Q:DEFAULT_AMSG, "Temperature out of range")
     }
 
-.. _facility_qdisable:
+.. _site_defaultprec:
+
+Default Floating-Point Precision (Q:PREC_ZERO)
+----------------------------------------------
+
+The ``defaultprec`` extension sets ``display.precision`` to 2 for any
+floating-point record whose ``PREC`` field is 0, preventing clients from
+displaying values with no decimal places simply because the database author
+omitted an explicit ``PREC`` setting.
+
+Only records whose PVA ``value`` field has a ``Kind::Real`` type (``float``,
+``double``, or their array variants) are affected.  Integer, enum, and string
+records are left untouched.
+
+To preserve ``precision = 0`` for a specific record, set the ``Q:PREC_ZERO``
+info field to any non-zero value:
+
+.. code-block:: none
+
+    record(ai, "$(P)counter") {
+        field(PREC, "0")
+        info(Q:PREC_ZERO, "1")
+    }
+
+The opt-out is evaluated once at ``initHookAtBeginning`` and has no per-GET
+overhead.
+
+.. _site_qdisable:
 
 Suppressing PVs from the Network (Q:DISABLE)
 ---------------------------------------------
@@ -87,14 +114,14 @@ or any record that should remain accessible via Channel Access but not via PVA.
 Extension API
 -------------
 
-Facility extensions are picked up automatically from ``facility/*.cpp``.  Each
+Site extensions are picked up automatically from ``site/*.cpp``.  Each
 file must define exactly one ``registerXxx()`` function in the
-``pvxs::ioc::facility`` namespace, where ``Xxx`` is the CamelCase basename of
+``pvxs::ioc::site`` namespace, where ``Xxx`` is the CamelCase basename of
 the file (e.g. ``alarmmsg.cpp`` -> ``registerAlarmmsg()``).  The build system
 collects these functions and calls them all from ``pvxsBaseRegistrar()`` before
 ``iocInit()`` runs.
 
-The registration functions declared in ``ioc/facilityhooks.h`` are:
+The registration functions declared in ``ioc/sitehooks.h`` are:
 
 .. list-table::
    :header-rows: 1

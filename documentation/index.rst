@@ -69,13 +69,13 @@ Contents
 
    releasenotes
 
-Facility Extensions
+Site Extensions
 ========================
 
 .. toctree::
    :maxdepth: 2
 
-   facility/index
+   site/index
 
 Indices and tables
 ==================

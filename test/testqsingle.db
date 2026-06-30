@@ -39,6 +39,7 @@ record(bo, "test:log") {
 record(waveform, "test:wf:f64") {
     field(FTVL, "DOUBLE")
     field(NELM, "10")
+    info(Q:PREC_ZERO, "1")
 }
 record(waveform, "test:wf:i32") {
     field(FTVL, "LONG")

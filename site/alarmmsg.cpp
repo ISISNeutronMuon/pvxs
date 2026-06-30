@@ -10,7 +10,7 @@
 #include <pvxs/log.h>
 
 #include "dbinfocache.h"
-#include "facilityhooks.h"
+#include "sitehooks.h"
 
 // include last to avoid clash of #define printf with other headers
 #include <epicsStdio.h>
@@ -21,8 +21,8 @@ namespace {
 
 // Function-local static avoids a file-scope static constructor, which would
 // fail the CDT check (.ci-local/cdt-check.sh) on Linux.
-pvxs::ioc::facility::DbInfoCache& infoCache() {
-    static pvxs::ioc::facility::DbInfoCache s;
+pvxs::ioc::site::DbInfoCache& infoCache() {
+    static pvxs::ioc::site::DbInfoCache s;
     return s;
 }
 
@@ -79,10 +79,10 @@ void onIocBuilt() {
 
 } // namespace
 
-namespace pvxs { namespace ioc { namespace facility {
+namespace pvxs { namespace ioc { namespace site {
 void registerAlarmmsg() {
     addInitHookAtBeginning(onBeginning);
     addInitHookAfterIocBuilt(onIocBuilt);
     addNodePostProcessor(applyAlarmMessage);
 }
-}}} // pvxs::ioc::facility
+}}} // pvxs::ioc::site

@@ -1,6 +1,6 @@
-# Facility Specific PVXS Extensions
+# Site-Specific PVXS Extensions
 
-This directory contains optional, facility-local extensions to PVXS IOC behaviour.
+This directory contains optional, site-local extensions to PVXS IOC behaviour.
 Any `.cpp` file placed here is automatically compiled into `libpvxsIoc` by the
 build system - no Makefile editing required.  Removing a file reverts to the
 default behaviour.
@@ -8,15 +8,15 @@ default behaviour.
 ## How it works
 
 Each source file defines a `registerXxx()` function in the
-`pvxs::ioc::facility` namespace, where `Xxx` is the CamelCase basename of the
-file (e.g. `alarmmsg.cpp` -> `registerAlarmmsg()`).  At build time,
-`gen_facilityregister.py` scans the directory, collects every such function,
-and generates `facilityregister.cpp` which calls them all from
-`registerFacilities()`.  `registerFacilities()` is invoked from
+`pvxs::ioc::site` namespace, where `Xxx` is the CamelCase basename of the
+file (e.g. `myextension.cpp` -> `registerMyextension()`).  At build time,
+`gen_siteregister.py` scans the directory, collects every such function,
+and generates `siteregister.cpp` which calls them all from
+`registerSiteExtensions()`.  `registerSiteExtensions()` is invoked from
 `pvxsBaseRegistrar()`, before `iocInit()` is called.
 
-The registration API is in `ioc/facilityhooks.h` and lives in the
-`pvxs::ioc::facility` namespace.
+The registration API is in `ioc/sitehooks.h` and lives in the
+`pvxs::ioc::site` namespace.
 
 ### Available hooks
 
@@ -29,7 +29,7 @@ The registration API is in `ioc/facilityhooks.h` and lives in the
 
 ### Filtering records
 
-To suppress a record from being served as a PV, call `facility::markFiltered` for
+To suppress a record from being served as a PV, call `site::markFiltered` for
 each record name during an `addInitHookAtBeginning` callback.  Filtered records
 are excluded from the PV list, search responses, and channel-open requests.
 
@@ -46,18 +46,18 @@ other record fields are safe to read.
 ## Adding a new extension
 
 1. Create a `.cpp` file in this directory.
-2. Include `"facilityhooks.h"`.
-3. Define a `registerXxx()` function in the `pvxs::ioc::facility` namespace
+2. Include `"sitehooks.h"`.
+3. Define a `registerXxx()` function in the `pvxs::ioc::site` namespace
    (where `Xxx` is the CamelCase basename of your file) and call the relevant
    registration functions inside it.  Do not use namespace-scope static objects
    - they produce GCC static-constructor symbols that fail the CDT check.
-4. Build - `gen_facilityregister.py` discovers the function automatically and
-   wires it into `registerFacilities()`.
+4. Build - `gen_siteregister.py` discovers the function automatically and
+   wires it into `registerSiteExtensions()`.
 
 Minimal template (file named `myextension.cpp`):
 
 ```cpp
-#include "facilityhooks.h"
+#include "sitehooks.h"
 
 namespace {
 
@@ -68,15 +68,15 @@ void onBeginning()
 
 } // namespace
 
-namespace pvxs { namespace ioc { namespace facility {
+namespace pvxs { namespace ioc { namespace site {
 void registerMyextension() {
     addInitHookAtBeginning(onBeginning);
 }
-}}} // pvxs::ioc::facility
+}}} // pvxs::ioc::site
 ```
 
 ## Tests
 
-Unit tests for facility extensions live in `test/`.  Each test links
+Unit tests for site extensions live in `test/`.  Each test links
 against the extension file it is testing plus `libpvxsIoc`.  See the existing
-`testqdisable` and `testalarmmsg` targets in `test/Makefile` for the pattern.
+tests in `test/` for the pattern.

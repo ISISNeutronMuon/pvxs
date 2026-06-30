@@ -12,14 +12,14 @@
 
 #include <initHooks.h>
 
-#include "facilityhooks.h"
+#include "sitehooks.h"
 
 namespace pvxs {
 namespace ioc {
-namespace facility {
+namespace site {
 
 namespace {
-// Function-local statics avoid init-order issues with facility-specific registrars.
+// Function-local statics avoid init-order issues with site-specific registrars.
 std::vector<std::function<void()>>& hooksAtBeginning() {
     static std::vector<std::function<void()>> v;
     return v;
@@ -36,7 +36,7 @@ std::set<std::string>& filteredNames() {
     static std::set<std::string> s;
     return s;
 }
-void facilityHookDispatch(initHookState state) noexcept
+void siteHookDispatch(initHookState state) noexcept
 {
     if (state == initHookAtBeginning)
         for (auto& fn : hooksAtBeginning()) fn();
@@ -47,8 +47,8 @@ void facilityHookDispatch(initHookState state) noexcept
 
 void registerHooks()
 {
-    registerFacilities();
-    initHookRegister(facilityHookDispatch);
+    registerSiteExtensions();
+    initHookRegister(siteHookDispatch);
 }
 
 /**
@@ -125,6 +125,6 @@ void postProcessNode(dbCommon* prec, Value& node)
         fn(prec, node);
 }
 
-} // facility
+} // site
 } // ioc
 } // pvxs

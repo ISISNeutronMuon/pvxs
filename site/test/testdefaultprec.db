@@ -1,0 +1,41 @@
+record(ai, "test:dp:float") {
+}
+
+record(ai, "test:dp:preczero") {
+    info(Q:PREC_ZERO, "1")
+}
+
+record(ai, "test:dp:prec3") {
+    field(PREC, "3")
+}
+
+record(longin, "test:dp:int") {
+}
+
+record(ai, "test:dp:zero0") {
+    info(Q:PREC_ZERO, "0")
+}
+
+record(waveform, "test:dp:wf") {
+    field(FTVL, "DOUBLE")
+    field(NELM, "10")
+}
+
+record(ao, "test:dp:a") {
+    field(VAL,  "1.23456")
+    field(PINI, "YES")
+    field(PREC, "5")
+}
+
+record(ao, "test:dp:b") {
+    field(VAL,  "7.89012")
+    field(PINI, "YES")
+    field(PREC, "5")
+}
+
+record(calc, "test:dp:calc") {
+    field(INPA, "test:dp:a NPP")
+    field(INPB, "test:dp:b NPP")
+    field(CALC, "A+B")
+    field(PINI, "YES")
+}

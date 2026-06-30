@@ -16,7 +16,7 @@
 struct dbCommon;   // pointer-only use; full definition not needed here
 struct dbInfoNode; // pointer-only use; full definition not needed here
 
-namespace pvxs { namespace ioc { namespace facility {
+namespace pvxs { namespace ioc { namespace site {
 
 // Per-record cache of dbInfoNode pointers built once at initHookAfterIocBuilt.
 // Stores dbInfoNode* rather than const char* so that runtime changes via
@@ -24,7 +24,7 @@ namespace pvxs { namespace ioc { namespace facility {
 //
 // PVXS_IOC_API is required here: out-of-line methods (build(), buildAll(),
 // Entry::lookup(), Entry::defaultValue()) are defined in dbinfocache.cpp and
-// compiled only into pvxsIoc. Other facility/*.cpp files (e.g. alarmmsg.cpp)
+// compiled only into pvxsIoc. Other site/*.cpp files (e.g. alarmmsg.cpp)
 // are recompiled directly into each test/IOC binary rather than linked from
 // pvxsIoc, so on Windows those callers must import these symbols across the
 // DLL boundary; without dllexport/dllimport the MSVC linker can't see them
@@ -65,6 +65,6 @@ private:
     std::unordered_map<dbCommon*, Entry> map_;
 };
 
-}}} // pvxs::ioc::facility
+}}} // pvxs::ioc::site
 
 #endif // PVXS_DBINFOCACHE_H
