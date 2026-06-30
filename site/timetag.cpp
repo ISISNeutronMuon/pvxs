@@ -22,13 +22,12 @@
 // and timeStamp.userTag stayed 0. This post-processor runs unconditionally,
 // so userTag is now populated even when DBR_UTAG is unavailable.
 
+#include <cstdlib>
 #include <cstring>
 #include <unordered_map>
 
 #include <dbCommon.h>
 #include <dbStaticLib.h>
-#include <epicsStdlib.h>
-#include <epicsTypes.h>
 
 #include "dbentry.h"
 #include "sitehooks.h"
@@ -52,8 +51,9 @@ void onIocBuilt()
             const char* val = ent.info("Q:time:tag");
             if (!val || strncmp(val, "nsec:lsb:", 9) != 0)
                 continue;
-            epicsInt32 dig = 0;
-            if (epicsParseInt32(val + 9, &dig, 10, nullptr) || dig < 1 || dig > 32)
+            char* end = nullptr;
+            long dig = strtol(val + 9, &end, 10);
+            if (end == val + 9 || *end != '\0' || dig < 1 || dig > 32)
                 continue;
             // Shift by (32 - dig), not by dig: dig may be 32, and shifting a
             // 32-bit value by 32 is undefined behaviour in C++.  32 - dig is
