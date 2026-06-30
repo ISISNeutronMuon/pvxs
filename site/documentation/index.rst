@@ -111,6 +111,11 @@ requests.  The filtering is evaluated once at ``initHookAtBeginning``, before
 This is useful for internal bookkeeping records, hardware-simulation records,
 or any record that should remain accessible via Channel Access but not via PVA.
 
+.. toctree::
+   :maxdepth: 1
+
+   tutorial_timetag
+
 Extension API
 -------------
 
