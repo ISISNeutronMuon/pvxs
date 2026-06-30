@@ -30,16 +30,16 @@ nothing registered yet, the extension does nothing:
     }}} // pvxs::ioc::site
 
 ``gen_siteregister.py`` finds this function by scanning ``site/*.cpp`` and
-wires it into ``siteregister.cpp`` automatically — nothing else needs to
+wires it into ``siteregister.cpp`` automatically -- nothing else needs to
 change for the build to pick it up.
 
 Step 2: Hook the per-record GET path
 ------------------------------------
 
-The thing we need to change — ``timeStamp.nanoseconds`` and
-``timeStamp.userTag`` — is filled in by ``IOCSource::get()``.  Despite the
+The thing we need to change -- ``timeStamp.nanoseconds`` and
+``timeStamp.userTag`` -- is filled in by ``IOCSource::get()``.  Despite the
 name, this single function is the shared path for *both* PVA gets and
-monitor updates — ``singlesource.cpp`` calls it both from the get handler
+monitor updates -- ``singlesource.cpp`` calls it both from the get handler
 and from the subscription callback that fires on every record update.  A
 post-processor registered here therefore applies uniformly to both, with
 no extra wiring required. ``addNodePostProcessor()`` registers a callback
@@ -105,7 +105,7 @@ The cache needs to be built once, after the database is loaded but before
 any client can issue a GET. ``addInitHookAfterIocBuilt()`` registers a
 callback for exactly that point. To find the info field, scan every record
 with ``DBEntry`` (a thin wrapper round ``dbStaticLib``'s entry-iteration
-API — see ``dbentry.h``):
+API -- see ``dbentry.h``):
 
 .. code-block:: c++
 
@@ -139,24 +139,24 @@ Step 5: Parsing "nsec:lsb:N" robustly
 -------------------------------------
 
 The info string has one recognised form: ``"nsec:lsb:<N>"`` where ``N`` is
-a bit-width from 1 to 32. Anything else — a typo, an unsupported keyword, a
-width out of range — should be ignored rather than crash the IOC or
+a bit-width from 1 to 32. Anything else -- a typo, an unsupported keyword, a
+width out of range -- should be ignored rather than crash the IOC or
 silently produce a nonsensical mask. ``epicsParseInt32`` parses the digits
 after the prefix and reports failure cleanly:
 
 .. code-block:: c++
 
+    #include <cstdlib>
     #include <cstring>
-    #include <epicsStdlib.h>
-    #include <epicsTypes.h>
 
     void onIocBuilt() {
         // ... (inside the inner loop from Step 4)
         const char* val = ent.info("Q:time:tag");
         if (!val || strncmp(val, "nsec:lsb:", 9) != 0)
             continue;
-        epicsInt32 dig = 0;
-        if (epicsParseInt32(val + 9, &dig, 10, nullptr) || dig < 1 || dig > 32)
+        char* end = nullptr;
+        long dig = strtol(val + 9, &end, 10);
+        if (end == val + 9 || *end != '\0' || dig < 1 || dig > 32)
             continue;
         cache[prec] = ~uint32_t(0u) >> (32 - dig);
     }
@@ -226,7 +226,7 @@ Tests for a site extension live alongside it, in ``site/test/``, not in
 per scenario: valid tag, no tag, invalid tag, different width). No
 ``Makefile`` changes are needed: ``site/test/Makefile`` wildcards
 ``site/*.cpp`` and auto-adds a test binary (plus its ``.db`` fixture) for
-any ``<name>.cpp`` that has a matching ``test<name>.cpp`` here — naming it
+any ``<name>.cpp`` that has a matching ``test<name>.cpp`` here -- naming it
 to match ``timetag.cpp`` (i.e. ``testtimetag.cpp``) is enough for it to
 be picked up.
 
@@ -238,13 +238,12 @@ Putting Steps 3 through 8 together produces the current
 
 .. code-block:: c++
 
+    #include <cstdlib>
     #include <cstring>
     #include <unordered_map>
 
     #include <dbCommon.h>
     #include <dbStaticLib.h>
-    #include <epicsStdlib.h>
-    #include <epicsTypes.h>
 
     #include "dbentry.h"
     #include "sitehooks.h"
@@ -268,8 +267,9 @@ Putting Steps 3 through 8 together produces the current
                 const char* val = ent.info("Q:time:tag");
                 if (!val || strncmp(val, "nsec:lsb:", 9) != 0)
                     continue;
-                epicsInt32 dig = 0;
-                if (epicsParseInt32(val + 9, &dig, 10, nullptr) || dig < 1 || dig > 32)
+                char* end = nullptr;
+                long dig = strtol(val + 9, &end, 10);
+                if (end == val + 9 || *end != '\0' || dig < 1 || dig > 32)
                     continue;
                 cache[prec] = ~uint32_t(0u) >> (32 - dig);
             }

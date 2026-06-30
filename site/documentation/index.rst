@@ -127,10 +127,10 @@ Configure it with a single ``info`` field on the record:
 
     info(Q:time:tag, "nsec:lsb:N")
 
-where ``N`` is the number of bits to reserve (1–32).  Any other format is
+where ``N`` is the number of bits to reserve (1-32).  Any other format is
 silently ignored and the timestamp is left unmodified.
 
-Example — reserve the lowest 8 bits:
+Example -- reserve the lowest 8 bits:
 
 .. code-block:: none
 
