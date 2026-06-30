@@ -231,16 +231,16 @@ _facility_src   = _os.path.normpath(_os.path.join(_conf_dir, '..', 'facility', '
 _facility_link  = _os.path.join(_conf_dir, 'facility')
 
 def _ensure_facility_link():
-    if _os.path.isdir(_facility_link):          # exists and reachable — nothing to do
+    if _os.path.isdir(_facility_link):          # exists and reachable - nothing to do
         return True
-    if _os.path.lexists(_facility_link):        # broken or stale symlink — remove it
+    if _os.path.lexists(_facility_link):        # broken or stale symlink - remove it
         _os.unlink(_facility_link)
-    try:                                    # symlink — instant and stays live
+    try:                                    # symlink - instant and stays live
         _os.symlink(_facility_src, _facility_link, target_is_directory=True)
         return True
     except (OSError, NotImplementedError):  # Windows without symlink privilege
         pass
-    try:                                    # copy fallback — static snapshot
+    try:                                    # copy fallback - static snapshot
         _shutil.copytree(_facility_src, _facility_link)
         return True
     except Exception:

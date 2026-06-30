@@ -31,9 +31,9 @@ pvxs::ioc::facility::DbInfoCache& infoCache() {
  * Called by IOCSource::get() with the record locked; prec->stat is stable.
  *
  * Alarm-status-to-info-key mapping:
- *   HIHI → Q:HIHI_AMSG, HIGH → Q:HIGH_AMSG,
- *   LOLO → Q:LOLO_AMSG, LOW  → Q:LOW_AMSG,
- *   STATE → Q:STATE<n>_AMSG  (n = value.index from the PVA node, not the record)
+ *   HIHI -> Q:HIHI_AMSG, HIGH -> Q:HIGH_AMSG,
+ *   LOLO -> Q:LOLO_AMSG, LOW  -> Q:LOW_AMSG,
+ *   STATE -> Q:STATE<n>_AMSG  (n = value.index from the PVA node, not the record)
  * Any unmatched alarm or missing key falls back to Q:DEFAULT_AMSG.
  */
 void applyAlarmMessage(dbCommon* prec, pvxs::Value& node)

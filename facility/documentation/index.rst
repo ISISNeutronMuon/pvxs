@@ -25,7 +25,7 @@ records:
    :widths: 30 70
 
    * - Info field
-     - Used when alarm status is …
+     - Used when alarm status is ...
    * - ``Q:HIHI_AMSG``
      - ``HIHI_ALARM``
    * - ``Q:HIGH_AMSG``
@@ -90,7 +90,7 @@ Extension API
 Facility extensions are picked up automatically from ``facility/*.cpp``.  Each
 file must define exactly one ``registerXxx()`` function in the
 ``pvxs::ioc::facility`` namespace, where ``Xxx`` is the CamelCase basename of
-the file (e.g. ``alarmmsg.cpp`` → ``registerAlarmmsg()``).  The build system
+the file (e.g. ``alarmmsg.cpp`` -> ``registerAlarmmsg()``).  The build system
 collects these functions and calls them all from ``pvxsBaseRegistrar()`` before
 ``iocInit()`` runs.
 
@@ -108,5 +108,5 @@ The registration functions declared in ``ioc/facilityhooks.h`` are:
      - Register a callback for ``initHookAtBeginning``
    * - ``addInitHookAfterIocBuilt(fn)``
      - Register a callback for ``initHookAfterIocBuilt``
-   * - ``setNodePostProcessor(fn)``
-     - Register a ``void(dbCommon*, Value&)`` called at the end of every ``IOCSource::get()``
+   * - ``addNodePostProcessor(fn)``
+     - Register a ``void(dbCommon*, Value&)`` called at the end of every ``IOCSource::get()``; multiple may be registered and are fired in order

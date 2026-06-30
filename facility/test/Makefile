@@ -27,7 +27,7 @@ ifdef BASE_3_15
 #
 # Note: the optional TESTFILES line for the .db fixture is NOT inside add_test.
 # $$(if $$(wildcard ...)) inside a define passes $(if ...) as a literal string to
-# eval, but eval only parses — it does not re-expand function calls in the text it
+# eval, but eval only parses - it does not re-expand function calls in the text it
 # receives.  Keeping the $(if $(wildcard ...)) here in the _unused := line means
 # it is expanded by := before eval ever sees it, avoiding a "missing separator" error.
 _unused := $(foreach src,$(notdir $(wildcard $(TOP)/facility/*.cpp)),\

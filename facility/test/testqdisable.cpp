@@ -32,16 +32,16 @@ void testQDisable()
     testDiag("%s", __func__);
     TestClient ctxt;
 
-    // No Q:DISABLE info field — record is served normally
+    // No Q:DISABLE info field - record is served normally
     auto val = ctxt.get("test:normal").exec()->wait(5.0);
     testTrue(!!val) << "test:normal is served";
 
-    // Q:DISABLE=1 — record must not be served
+    // Q:DISABLE=1 - record must not be served
     testThrows<client::Timeout>([&ctxt]() {
         ctxt.get("test:disabled").exec()->wait(2.0);
     }) << "test:disabled is not served";
 
-    // Q:DISABLE=0 — treated as enabled, record is served
+    // Q:DISABLE=0 - treated as enabled, record is served
     val = ctxt.get("test:enabled0").exec()->wait(5.0);
     testTrue(!!val) << "test:enabled0 is served";
 }

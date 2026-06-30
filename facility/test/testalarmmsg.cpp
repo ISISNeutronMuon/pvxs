@@ -45,7 +45,7 @@ void testAlarmMessage()
     val = ctxt.get("test:amsg").exec()->wait(5.0);
     testStrEq(val["alarm.message"].as<std::string>(), "Getting high");
 
-    // no alarm — message is empty
+    // no alarm - message is empty
     testdbPutFieldOk("test:amsg", DBR_DOUBLE, 50.0);
     val = ctxt.get("test:amsg").exec()->wait(5.0);
     testStrEq(val["alarm.message"].as<std::string>(), "");
@@ -56,7 +56,7 @@ void testAlarmMessage()
     testStrEq(val["alarm.message"].as<std::string>(),
               "Value is critically low - this message exceeds forty chars");
 
-    // LOW_ALARM with no specific Q:LOW_AMSG — falls back to Q:DEFAULT_AMSG
+    // LOW_ALARM with no specific Q:LOW_AMSG - falls back to Q:DEFAULT_AMSG
     testdbPutFieldOk("test:amsg", DBR_DOUBLE, 15.0);
     val = ctxt.get("test:amsg").exec()->wait(5.0);
     testStrEq(val["alarm.message"].as<std::string>(), "Something is wrong");
@@ -87,7 +87,7 @@ void testDefaultMsgUpdate()
         dbFinishEntry(&ent);
     }
 
-    // Re-fetch — postProcessNode reads defaultNode->string at call time, not at cache-build time
+    // Re-fetch - postProcessNode reads defaultNode->string at call time, not at cache-build time
     val = ctxt.get("test:amsg:default").exec()->wait(5.0);
     testStrEq(val["alarm.message"].as<std::string>(), "Updated message");
 }
