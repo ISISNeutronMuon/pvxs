@@ -36,10 +36,13 @@ void facilityHookDispatch(initHookState state) noexcept
     else if (state == initHookAfterIocBuilt)
         for (auto& fn : hooksAfterIocBuilt()) fn();
 }
-struct FacilityHooksRegistrar {
-    FacilityHooksRegistrar() { initHookRegister(facilityHookDispatch); }
-} s_registrar;
 } // namespace
+
+void registerHooks()
+{
+    registerFacilities();
+    initHookRegister(facilityHookDispatch);
+}
 
 /**
  * Register a callback to be invoked at EPICS initHookAtBeginning.

@@ -14,8 +14,11 @@ src_DEPEND_DIRS = setup
 DIRS += tools
 tools_DEPEND_DIRS = src
 
+DIRS += facility
+facility_DEPEND_DIRS = src
+
 DIRS += ioc
-ioc_DEPEND_DIRS = src
+ioc_DEPEND_DIRS = src facility
 
 ifdef BASE_3_15
 DIRS += qsrv
@@ -25,8 +28,8 @@ endif
 DIRS += test
 test_DEPEND_DIRS = src ioc
 
-DIRS += facility
-facility_DEPEND_DIRS = ioc
+DIRS += facility/test
+facility/test_DEPEND_DIRS = ioc
 
 DIRS += example
 example_DEPEND_DIRS = src
