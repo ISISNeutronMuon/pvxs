@@ -158,7 +158,7 @@ after the prefix and reports failure cleanly:
         epicsInt32 dig = 0;
         if (epicsParseInt32(val + 9, &dig, 10, nullptr) || dig < 1 || dig > 32)
             continue;
-        cache[prec] = (uint32_t(1u) << dig) - 1u;
+        cache[prec] = ~uint32_t(0u) >> (32 - dig);
     }
 
 This is exercised by ``testInvalidTag`` in ``site/test/testtimetag.cpp``
@@ -271,7 +271,7 @@ Putting Steps 3 through 8 together produces the current
                 epicsInt32 dig = 0;
                 if (epicsParseInt32(val + 9, &dig, 10, nullptr) || dig < 1 || dig > 32)
                     continue;
-                cache[prec] = (uint32_t(1u) << dig) - 1u;
+                cache[prec] = ~uint32_t(0u) >> (32 - dig);
             }
         }
     }

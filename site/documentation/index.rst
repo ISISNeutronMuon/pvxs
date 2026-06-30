@@ -111,6 +111,36 @@ requests.  The filtering is evaluated once at ``initHookAtBeginning``, before
 This is useful for internal bookkeeping records, hardware-simulation records,
 or any record that should remain accessible via Channel Access but not via PVA.
 
+.. _site_timetag:
+
+Timestamp Tag Bits (Q:time:tag)
+-------------------------------
+
+The ``timetag`` extension reserves the lowest N bits of a record's nanosecond
+timestamp for a user-defined tag, packing them into ``timeStamp.userTag`` and
+clearing them from ``timeStamp.nanoseconds`` on every PVA get and monitor
+update.
+
+Configure it with a single ``info`` field on the record:
+
+.. code-block:: none
+
+    info(Q:time:tag, "nsec:lsb:N")
+
+where ``N`` is the number of bits to reserve (1–32).  Any other format is
+silently ignored and the timestamp is left unmodified.
+
+Example — reserve the lowest 8 bits:
+
+.. code-block:: none
+
+    record(ai, "$(P)value") {
+        info(Q:time:tag, "nsec:lsb:8")
+    }
+
+For a step-by-step explanation of how this extension is built, see the
+:ref:`tutorial <site_tutorial_timetag>`.
+
 .. toctree::
    :maxdepth: 1
 

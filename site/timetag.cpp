@@ -55,7 +55,10 @@ void onIocBuilt()
             epicsInt32 dig = 0;
             if (epicsParseInt32(val + 9, &dig, 10, nullptr) || dig < 1 || dig > 32)
                 continue;
-            cache[prec] = (uint32_t(1u) << dig) - 1u;
+            // Shift by (32 - dig), not by dig: dig may be 32, and shifting a
+            // 32-bit value by 32 is undefined behaviour in C++.  32 - dig is
+            // always in [0, 31], so this form is safe for the full range.
+            cache[prec] = ~uint32_t(0u) >> (32 - dig);
         }
     }
 }
