@@ -69,6 +69,14 @@ Contents
 
    releasenotes
 
+Site Extensions
+========================
+
+.. toctree::
+   :maxdepth: 2
+
+   site/index
+
 Indices and tables
 ==================
 

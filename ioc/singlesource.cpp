@@ -26,6 +26,7 @@
 #include "dberrormessage.h"
 #include "dblocker.h"
 #include "iocsource.h"
+#include "sitehooks.h"
 #include "singlesource.h"
 #include "singlesrcsubscriptionctx.h"
 #include "credentials.h"
@@ -55,8 +56,7 @@ void subscriptionCallback(SingleSourceSubscriptionCtx* subscriptionContext,
 
         {
             DBLocker F(dbChannelRecord(subscriptionContext->info->chan));
-            // TODO MappingInfo::nsecMask
-            IOCSource::get(currentValue, MappingInfo(), Value(), change, pChannel, pDbFieldLog);
+            IOCSource::get(currentValue, *subscriptionContext->info, Value(), change, pChannel, pDbFieldLog);
         }
 
         // Make sure that the initial subscription update has occurred on both channels before continuing
@@ -402,7 +402,8 @@ SingleSource::SingleSource()
     DBEntry dbEntry;
     for (long status = dbFirstRecordType(dbEntry); !status; status = dbNextRecordType(dbEntry)) {
         for (status = dbFirstRecord(dbEntry); !status; status = dbNextRecord(dbEntry)) {
-            names->insert(dbEntry->precnode->recordname);
+            if (!site::isNameFiltered(dbEntry->precnode->recordname))
+                names->insert(dbEntry->precnode->recordname);
         }
     }
 
@@ -433,6 +434,9 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
         log_debug_printf(_logname, "Ignore requested channel '%s' : %s\n", sourceName, e.what());
         return;
     }
+
+    if (site::isNameFiltered(sourceName))
+        return;
 
     log_debug_printf(_logname, "Accepting channel for '%s'\n", sourceName);
 
@@ -467,6 +471,8 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
 void SingleSource::onSearch(Search& searchOperation) {
     for (auto& pv: searchOperation) {
         if (!dbChannelTest(pv.name())) {
+            if (site::isNameFiltered(pv.name()))
+                continue;
             pv.claim();
             log_debug_printf(_logname, "Claiming '%s'\n", pv.name());
         }
