@@ -56,7 +56,9 @@ public:
     // Build and cache an entry for prec containing all info nodes whose name
     // begins with prefix.  If defaultKey is non-null, that node is stored as
     // the fallback returned by Entry::defaultValue() and Entry::lookup().
-    Entry& build(dbCommon* prec, const char* prefix, const char* defaultKey = nullptr);
+    // Returns true if at least one matching field was found and an entry was
+    // inserted; false if the record has no matching fields (nothing is cached).
+    bool build(dbCommon* prec, const char* prefix, const char* defaultKey = nullptr);
 
     // Iterate all loaded records and call build() for each.
     void buildAll(const char* prefix, const char* defaultKey = nullptr);

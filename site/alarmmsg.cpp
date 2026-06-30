@@ -42,7 +42,7 @@ void applyAlarmMessage(dbCommon* prec, pvxs::Value& node)
         return;
 
     const auto* cache = infoCache().find(prec);
-    if (!cache || cache->fields.empty())
+    if (!cache)
         return;
 
     const char* stsmsg = nullptr;

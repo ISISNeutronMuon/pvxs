@@ -30,21 +30,27 @@ const char* DbInfoCache::Entry::lookup(const char* key) const {
     return defaultValue();
 }
 
-DbInfoCache::Entry& DbInfoCache::build(dbCommon* prec, const char* prefix, const char* defaultKey)
+bool DbInfoCache::build(dbCommon* prec, const char* prefix, const char* defaultKey)
 {
-    Entry& entry = map_[prec];
     DBEntry ent(prec);
     const size_t prefixLen = strlen(prefix);
 
+    std::vector<std::pair<const char*, dbInfoNode*>> fields;
     for (auto status = dbFirstInfo(ent); !status; status = dbNextInfo(ent)) {
         if (strncmp(ent->pinfonode->name, prefix, prefixLen) == 0)
-            entry.fields.emplace_back(ent->pinfonode->name, ent->pinfonode);
+            fields.emplace_back(ent->pinfonode->name, ent->pinfonode);
     }
-    std::sort(entry.fields.begin(), entry.fields.end(),
+    if (fields.empty())
+        return false;
+
+    std::sort(fields.begin(), fields.end(),
               [](const std::pair<const char*, dbInfoNode*>& a,
                  const std::pair<const char*, dbInfoNode*>& b) {
                   return strcmp(a.first, b.first) < 0;
               });
+
+    Entry& entry = map_[prec];
+    entry.fields = std::move(fields);
 
     if (defaultKey) {
         auto cmp = [](const std::pair<const char*, dbInfoNode*>& e, const char* k) {
@@ -54,7 +60,7 @@ DbInfoCache::Entry& DbInfoCache::build(dbCommon* prec, const char* prefix, const
         if (it != entry.fields.end() && strcmp(it->first, defaultKey) == 0)
             entry.defaultNode = it->second;
     }
-    return entry;
+    return true;
 }
 
 void DbInfoCache::buildAll(const char* prefix, const char* defaultKey)
