@@ -21,6 +21,7 @@ endef
 # Facility tests use TestIOC and dbUnitTest.h, both of which require base >= 3.15.
 ifdef BASE_3_15
 
+# --- Auto-discovery block ---
 # For each <name>.cpp in site/, add a test binary if test<name>.cpp exists here.
 # Does not handle tests that need extra source files, extra libs, or a different
 # binary name than test<name>; add those manually below.
@@ -37,6 +38,10 @@ _unused := $(foreach src,$(notdir $(wildcard $(TOP)/site/*.cpp)),\
       $(eval TESTFILES += ../test$(basename $(src)).db))))
 
 endif # BASE_3_15
+
+# --- Manual test entries ---
+# Add here any tests that need extra source files, extra libraries, or a binary
+# name that does not follow the test<name> convention above.
 
 TESTSCRIPTS_HOST += $(TESTS:%=%.t)
 # No CROSS_COMPILER_RUNTEST_ARCHS block here: these tests use a PVAccess
