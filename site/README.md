@@ -24,7 +24,7 @@ The registration API is in `ioc/sitehooks.h` and lives in the
 |---|---|---|
 | `addInitHookAtBeginning(fn)` | Fires at EPICS `initHookAtBeginning` -- after `dbLoadRecords()`, before `iocBuild()` | Reset per-IOC state; scan info fields |
 | `addInitHookAfterIocBuilt(fn)` | Fires at EPICS `initHookAfterIocBuilt` -- after all `init_record()` calls | Read field values or links that require full initialisation |
-| `addNodePostProcessor(fn)` | Fires at the end of every `IOCSource::get()`; multiple may be registered | Override or augment fields in the PVA response (e.g. `alarm.message`) |
+| `addNodePostProcessor(fn)` | Fires at the end of every `IOCSource::get()`; multiple may be added | Override or augment fields in the PVA response (e.g. `alarm.message`) |
 
 ### Choosing between the two init-hook phases
 
@@ -55,9 +55,9 @@ throughout the entire `iocBuild()` phase.
 
 ### Modifying PVA responses
 
-`addNodePostProcessor` registers a `void(dbCommon*, Value&)` callback
+`addNodePostProcessor` adds a `void(dbCommon*, Value&)` callback
 that is called at the end of `IOCSource::get()` after all standard fields have
-been populated.  Multiple callbacks may be registered; they are fired in
+been populated.  Multiple callbacks may be added; they are fired in
 registration order.  The callback may read any field from the node and overwrite
 it.  The record is locked for the duration of the call, so `prec->stat` and
 other record fields are safe to read.

@@ -45,7 +45,7 @@ void registerHooks()
 }
 
 /**
- * Register a callback to be invoked at EPICS initHookAtBeginning.
+ * Add a callback to be invoked at EPICS initHookAtBeginning.
  * Multiple callbacks may be registered; they are fired in registration order.
  * Use this phase to iterate the loaded database and pre-compute per-record data
  * before SingleSource is constructed.
@@ -58,7 +58,7 @@ void addInitHookAtBeginning(std::function<void()> fn)
 }
 
 /**
- * Register a callback to be invoked at EPICS initHookAfterIocBuilt.
+ * Add a callback to be invoked at EPICS initHookAfterIocBuilt.
  * Multiple callbacks may be registered; they are fired in registration order.
  *
  * @param fn callback to invoke
@@ -69,7 +69,7 @@ void addInitHookAfterIocBuilt(std::function<void()> fn)
 }
 
 /**
- * Register a node post-processor, called at the end of every IOCSource::get()
+ * Add a node post-processor, called at the end of every IOCSource::get()
  * after all standard fields have been populated.
  * Multiple processors may be registered; they are fired in registration order.
  * The record is locked for the duration of each call.
