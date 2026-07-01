@@ -20,9 +20,6 @@ namespace site {
 
 // --- Registration (called by site-specific code) ---
 
-// Pre-populate the name-based filter set (accepts bare record names).
-PVXS_IOC_API void markFiltered(const char* name);
-
 // Multiple callbacks may be registered; all are fired in registration order.
 PVXS_IOC_API void addInitHookAtBeginning(std::function<void()> fn);
 PVXS_IOC_API void addInitHookAfterIocBuilt(std::function<void()> fn);
@@ -39,10 +36,6 @@ void registerHooks();
 void registerSiteExtensions();
 
 // --- Dispatch (called by core ioc/ code) ---
-
-// Returns true if the record name was pre-registered via markFiltered.
-// Accepts bare record names or "RECORD.FIELD" PV names.
-bool isNameFiltered(const char* pvName);
 
 void postProcessNode(dbCommon* prec, Value& node);
 

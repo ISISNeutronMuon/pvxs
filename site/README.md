@@ -22,17 +22,9 @@ The registration API is in `ioc/sitehooks.h` and lives in the
 
 | Function | When called | Typical use |
 |---|---|---|
-| `markFiltered(name)` | Call during `addInitHookAtBeginning` callback | Suppress a record from being served as a PV |
 | `addInitHookAtBeginning(fn)` | Fires at EPICS `initHookAtBeginning` | Pre-compute per-record data before the IOC is fully built |
 | `addInitHookAfterIocBuilt(fn)` | Fires at EPICS `initHookAfterIocBuilt` | Post-IOC-build setup |
 | `addNodePostProcessor(fn)` | Fires at the end of every `IOCSource::get()`; multiple may be registered | Override or augment fields in the PVA response (e.g. `alarm.message`) |
-
-### Filtering records
-
-To suppress a record from being served as a PV, call `site::markFiltered` for
-each record name during an `addInitHookAtBeginning` callback.  Filtered records
-are excluded from the PV list, search responses, and channel-open requests.
-
 
 ### Modifying PVA responses
 

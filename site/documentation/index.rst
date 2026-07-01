@@ -61,8 +61,6 @@ The registration functions declared in ``ioc/sitehooks.h`` are:
 
    * - Function
      - Purpose
-   * - ``markFiltered(name)``
-     - Suppress a record from PVA (call inside an ``addInitHookAtBeginning`` callback)
    * - ``addInitHookAtBeginning(fn)``
      - Register a callback for ``initHookAtBeginning``
    * - ``addInitHookAfterIocBuilt(fn)``
