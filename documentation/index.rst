@@ -69,15 +69,6 @@ Contents
 
    releasenotes
 
-Site Extensions
----------------
-
-.. toctree::
-   :maxdepth: 2
-
-   site/index
-   site/tutorial_timetag
-
 Indices and tables
 ==================
 

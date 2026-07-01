@@ -6,15 +6,11 @@ INKSCAPE?=inkscape
 #
 # apt-get install doxygen python3-sphinx python3-breathe
 
-# If ../site/documentation/index.rst exists its content is woven into the build.
-# conf.py creates the site/ link automatically (cross-platform).
-
 all: gen
 
 clean:
 	rm -rf xml default pvxs.tag
 	rm -rf html _build _image
-	$(PYTHON) -c "import shutil,os; p='site'; os.unlink(p) if os.path.islink(p) else shutil.rmtree(p,True) if os.path.isdir(p) else None"
 
 # conf.py reads CONFIG_PVXS_VERSION to extract version number
 gen: ../include/pvxs/version.h
