@@ -6,7 +6,7 @@ Convention: site/foo.cpp must define
     void registerFoo();   // first letter of basename capitalised
     }}}
 
-Usage: gen_siteregister.py site/alarmmsg.cpp site/qdisable.cpp ...
+Usage: gen_siteregister.py site/alarmmsg.cpp site/pvfilter.cpp ...
 """
 
 import os

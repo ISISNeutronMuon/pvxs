@@ -401,7 +401,7 @@ SingleSource::SingleSource()
     DBEntry dbEntry;
     for (long status = dbFirstRecordType(dbEntry); !status; status = dbNextRecordType(dbEntry)) {
         for (status = dbFirstRecord(dbEntry); !status; status = dbNextRecord(dbEntry)) {
-            if (!site::isNameFiltered(dbEntry->precnode->recordname))
+            if (site::isChannelAllowed(dbEntry->precnode->recordname, nullptr))
                 names->insert(dbEntry->precnode->recordname);
         }
     }
@@ -434,7 +434,7 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
         return;
     }
 
-    if (site::isNameFiltered(sourceName))
+    if (!site::isChannelAllowed(sourceName, channelControl->peerName().c_str()))
         return;
 
     log_debug_printf(_logname, "Accepting channel for '%s'\n", sourceName);
@@ -470,7 +470,7 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
 void SingleSource::onSearch(Search& searchOperation) {
     for (auto& pv: searchOperation) {
         if (!dbChannelTest(pv.name())) {
-            if (site::isNameFiltered(pv.name()))
+            if (!site::isChannelAllowed(pv.name(), searchOperation.source()))
                 continue;
             pv.claim();
             log_debug_printf(_logname, "Claiming '%s'\n", pv.name());

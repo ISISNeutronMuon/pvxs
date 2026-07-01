@@ -1,0 +1,18 @@
+record(ai, "test:normal") {
+}
+
+record(ai, "test:disabled") {
+    info(Q:pv:disable, "1")
+}
+
+record(ai, "test:enabled0") {
+    info(Q:pv:disable, "0")
+}
+
+record(ai, "test:loopback_only") {
+    info(Q:pv:loopback_only, "1")
+}
+
+record(ai, "test:loopback_enabled0") {
+    info(Q:pv:loopback_only, "0")
+}

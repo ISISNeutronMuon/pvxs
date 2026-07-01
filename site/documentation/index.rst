@@ -91,25 +91,40 @@ info field to any non-zero value:
 The opt-out is evaluated once at ``initHookAtBeginning`` and has no per-GET
 overhead.
 
-.. _site_qdisable:
+.. _site_pvfilter:
 
-Suppressing PVs from the Network (Q:DISABLE)
----------------------------------------------
+Suppressing and Restricting PVs (Q:pv:disable, Q:pv:loopback_only)
+--------------------------------------------------------------------
 
-The ``qdisable`` extension prevents selected records from being served over
-PVA.  A record is suppressed when its ``Q:DISABLE`` info field is set to any
-non-zero value:
+The ``pvfilter`` extension provides two info fields for controlling which
+records are visible over PVA.
+
+**Q:pv:disable** -- suppress a record from PVA entirely.  A record is
+suppressed when the info field is set to any non-zero value:
 
 .. code-block:: none
 
-    info(Q:DISABLE, "1")
+    info(Q:pv:disable, "1")
 
-Suppressed records are excluded from PV search replies and channel-open
-requests.  The filtering is evaluated once at ``initHookAtBeginning``, before
-``SingleSource`` is constructed, so it has no runtime overhead.
+Suppressed records are excluded from the PV name list, search replies, and
+channel-open requests.  This is useful for internal bookkeeping records,
+hardware-simulation records, or any record that should remain accessible via
+Channel Access but not via PVA.
 
-This is useful for internal bookkeeping records, hardware-simulation records,
-or any record that should remain accessible via Channel Access but not via PVA.
+**Q:pv:loopback_only** -- restrict a record to clients connecting via the
+loopback interface.  Clients on other network interfaces receive no search
+reply and cannot open a channel:
+
+.. code-block:: none
+
+    info(Q:pv:loopback_only, "1")
+
+The record remains visible in the PV name list so that local tools can
+discover it.  Only connections from the full IPv4 loopback range
+(``127.0.0.0/8``) and the IPv6 loopback address (``::1``) are accepted.
+
+Both filters are evaluated once at ``initHookAtBeginning`` and have no
+per-request overhead.
 
 .. _site_timetag:
 
