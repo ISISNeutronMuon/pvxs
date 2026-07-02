@@ -27,6 +27,15 @@ The registration API is in `ioc/sitehooks.h` and lives in the
 | `addInitHookAfterIocBuilt(fn)` | Fires at EPICS `initHookAfterIocBuilt` | Post-IOC-build setup |
 | `addNodePostProcessor(fn)` | Fires at the end of every `IOCSource::get()`; multiple may be registered | Override or augment fields in the PVA response (e.g. `alarm.message`) |
 
+### Iterating records
+
+`pvxs::ioc::forEachRecord(fn)` (declared in `ioc/dbentry.h`, alongside the
+`DBEntry` wrapper it uses internally) calls `fn(dbCommon*)` for every record
+currently loaded in the database. Use it from an `addInitHookAtBeginning` or
+`addInitHookAfterIocBuilt` callback instead of hand-writing the
+`dbFirstRecordType`/`dbFirstRecord` double loop - the example extensions in
+this directory use it to build their per-record caches.
+
 ### Filtering records
 
 To suppress a record from being served as a PV, call `site::markFiltered` for
@@ -77,6 +86,6 @@ void registerMyextension() {
 
 ## Tests
 
-Unit tests for site extensions live in `test/`.  Each test links
+Unit tests for site extensions live in `site/test/`.  Each test links
 against the extension file it is testing plus `libpvxsIoc`.  See the existing
-tests in `test/` for the pattern.
+tests in `site/test/` for the pattern.

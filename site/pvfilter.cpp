@@ -26,9 +26,12 @@
 #include <unordered_set>
 #include <string>
 
-// Use platform socket headers directly rather than osiSock.h.
-// osiSock.h is an EPICS-internal header not guaranteed to be on the
-// include path for site extensions.
+// Use platform socket headers and inet_pton() directly rather than pvxs::SockAddr
+// (src/osiSockExt.h). SockAddr's parser falls back to a synchronous DNS lookup
+// for any string that isn't a literal numeric address, and isLoopbackAddr() runs
+// on the search-reply hot path (once per candidate PV name per PVA search) -- a
+// malformed or unexpected peerAddr there must fail fast, not risk blocking on the
+// network. inet_pton() never resolves hostnames, so it can't hit that path.
 #ifdef _WIN32
 #  include <winsock2.h>
 #  include <ws2tcpip.h>
@@ -67,20 +70,13 @@ void populateSets()
     auto& loopback = loopbackOnlySet();
     disabled.clear();
     loopback.clear();
-    pvxs::ioc::DBEntry dbEntry;
-    for (long status = dbFirstRecordType(dbEntry); !status; status = dbNextRecordType(dbEntry)) {
-        for (status = dbFirstRecord(dbEntry); !status; status = dbNextRecord(dbEntry)) {
-            auto* prec = static_cast<dbCommon*>(dbEntry->precnode->precord);
-            pvxs::ioc::DBEntry infoEnt(prec);
-            const char* name = dbEntry->precnode->recordname;
-            const char* val = infoEnt.info("Q:pv:disable");
-            if (val && val[0] != '\0' && strcmp(val, "0") != 0)
-                disabled.insert(name);
-            val = infoEnt.info("Q:pv:loopback_only");
-            if (val && val[0] != '\0' && strcmp(val, "0") != 0)
-                loopback.insert(name);
-        }
-    }
+    pvxs::ioc::forEachRecord([&](dbCommon* prec) {
+        pvxs::ioc::DBEntry infoEnt(prec);
+        if (pvxs::ioc::site::infoFlagSet(infoEnt.info("Q:pv:disable")))
+            disabled.insert(prec->name);
+        if (pvxs::ioc::site::infoFlagSet(infoEnt.info("Q:pv:loopback_only")))
+            loopback.insert(prec->name);
+    });
 }
 
 // Returns true if peerAddr ("X.X.X.X:port" or "[addr]:port") is a loopback address.
@@ -99,9 +95,7 @@ static bool isLoopbackAddr(const char* peerAddr)
         struct in6_addr a6;
         if (inet_pton(AF_INET6, addr.c_str(), &a6) != 1)
             return false;
-        struct in6_addr lo6;
-        inet_pton(AF_INET6, "::1", &lo6);
-        return memcmp(&a6, &lo6, sizeof(a6)) == 0;
+        return IN6_IS_ADDR_LOOPBACK(&a6);
     } else {
         // IPv4: "X.X.X.X:port" -- strip the trailing ":port"
         const char* colon = strrchr(peerAddr, ':');

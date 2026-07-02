@@ -10,7 +10,6 @@
 #include <dbAccess.h>
 #include <dbUnitTest.h>
 #include <epicsExit.h>
-#include <epicsEvent.h>
 #include <generalTimeSup.h>
 
 #include <pvxs/client.h>
@@ -18,6 +17,8 @@
 #include <pvxs/log.h>
 #include <pvxs/server.h>
 #include <pvxs/unittest.h>
+
+#include "testioc.h"
 
 extern "C" {
 extern int testioc_registerRecordDeviceDriver(struct dbBase*);
@@ -42,24 +43,6 @@ int testTimeCurrent(epicsTimeStamp* pDest)
     pDest->nsec         = uint32_t(kRawNsec);
     return 0;
 }
-
-struct TestClient : client::Context {
-    TestClient() : client::Context(ioc::server().clientConfig().build()) {}
-};
-
-struct TestSubscription {
-    epicsEvent evt;
-    const std::shared_ptr<client::Subscription> sub;
-    explicit TestSubscription(client::MonitorBuilder b)
-        : sub(b.event([this](client::Subscription&) { evt.signal(); }).exec())
-    {}
-    Value waitForUpdate() {
-        while(true) {
-            if(auto val = sub->pop()) return val;
-            if(!evt.wait(5.0)) { testFail("timeout waiting for monitor update"); return {}; }
-        }
-    }
-};
 
 // Verify that Q:time:tag "nsec:lsb:8" masks nanoseconds and fills userTag on GET.
 void testTimeTagGet()

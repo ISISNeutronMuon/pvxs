@@ -4,7 +4,6 @@
  * in file LICENSE that is included with this distribution.
  */
 
-#include <cstring>
 #include <unordered_set>
 
 #include "dbentry.h"
@@ -21,16 +20,11 @@ void buildPrecZeroSet()
 {
     auto& s = precZeroSet();
     s.clear();
-    pvxs::ioc::DBEntry ent;
-    for (long status = dbFirstRecordType(ent); !status; status = dbNextRecordType(ent)) {
-        for (status = dbFirstRecord(ent); !status; status = dbNextRecord(ent)) {
-            auto* prec = static_cast<dbCommon*>(ent->precnode->precord);
-            pvxs::ioc::DBEntry infoEnt(prec);
-            const char* val = infoEnt.info("Q:PREC_ZERO");
-            if (val && val[0] != '\0' && strcmp(val, "0") != 0)
-                s.insert(prec);
-        }
-    }
+    pvxs::ioc::forEachRecord([&s](dbCommon* prec) {
+        pvxs::ioc::DBEntry infoEnt(prec);
+        if (pvxs::ioc::site::infoFlagSet(infoEnt.info("Q:PREC_ZERO")))
+            s.insert(prec);
+    });
 }
 
 // Set display.precision to 2 when a floating-point record has PREC=0 (the default).
@@ -39,10 +33,10 @@ void buildPrecZeroSet()
 // records are left untouched so their precision=0 remains meaningful.
 void applyDefaultPrecision(dbCommon* prec, pvxs::Value& node)
 {
+    if (precZeroSet().count(prec))
+        return;
     auto val = node["value"];
     if (!val || val.type().kind() != pvxs::Kind::Real)
-        return;
-    if (precZeroSet().count(prec))
         return;
     if (auto fld = node["display.precision"]) {
         if (fld.as<int32_t>() == 0)

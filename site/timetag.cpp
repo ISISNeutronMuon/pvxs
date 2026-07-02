@@ -27,7 +27,6 @@
 #include <unordered_map>
 
 #include <dbCommon.h>
-#include <dbStaticLib.h>
 
 #include "dbentry.h"
 #include "sitehooks.h"
@@ -44,28 +43,27 @@ void onBeginning() { nsecMaskCache().clear(); }
 void onIocBuilt()
 {
     auto& cache = nsecMaskCache();
-    pvxs::ioc::DBEntry ent;
-    for (long s = dbFirstRecordType(ent); !s; s = dbNextRecordType(ent)) {
-        for (s = dbFirstRecord(ent); !s; s = dbNextRecord(ent)) {
-            auto* prec = static_cast<dbCommon*>(ent->precnode->precord);
-            const char* val = ent.info("Q:time:tag");
-            if (!val || strncmp(val, "nsec:lsb:", 9) != 0)
-                continue;
-            char* end = nullptr;
-            long dig = strtol(val + 9, &end, 10);
-            if (end == val + 9 || *end != '\0' || dig < 1 || dig > 32)
-                continue;
-            // Shift by (32 - dig), not by dig: dig may be 32, and shifting a
-            // 32-bit value by 32 is undefined behaviour in C++.  32 - dig is
-            // always in [0, 31], so this form is safe for the full range.
-            cache[prec] = ~uint32_t(0u) >> (32 - dig);
-        }
-    }
+    pvxs::ioc::forEachRecord([&cache](dbCommon* prec) {
+        pvxs::ioc::DBEntry ent(prec);
+        const char* val = ent.info("Q:time:tag");
+        if (!val || strncmp(val, "nsec:lsb:", 9) != 0)
+            return;
+        char* end = nullptr;
+        long dig = strtol(val + 9, &end, 10);
+        if (end == val + 9 || *end != '\0' || dig < 1 || dig > 32)
+            return;
+        // Shift by (32 - dig), not by dig: dig may be 32, and shifting a
+        // 32-bit value by 32 is undefined behaviour in C++.  32 - dig is
+        // always in [0, 31], so this form is safe for the full range.
+        cache[prec] = ~uint32_t(0u) >> (32 - dig);
+    });
 }
 
 void applyTimeTag(dbCommon* prec, pvxs::Value& node)
 {
     auto& cache = nsecMaskCache();
+    if (cache.empty())
+        return;
     auto it = cache.find(prec);
     if (it == cache.end())
         return;

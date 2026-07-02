@@ -2,7 +2,7 @@ TOP=../..
 
 include $(TOP)/configure/CONFIG
 
-USR_CPPFLAGS += -I$(TOP)/ioc
+USR_CPPFLAGS += -I$(TOP)/ioc -I$(TOP)/test
 SRC_DIRS += $(TOP)/site
 
 DBDDEPENDS_FILES += testioc.dbd$(DEP)

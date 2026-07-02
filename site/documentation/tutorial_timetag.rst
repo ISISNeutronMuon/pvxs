@@ -104,27 +104,25 @@ Step 4: Populating the cache at IOC init
 The cache needs to be built once, after the database is loaded but before
 any client can issue a GET. ``addInitHookAfterIocBuilt()`` registers a
 callback for exactly that point. To find the info field, scan every record
-with ``DBEntry`` (a thin wrapper round ``dbStaticLib``'s entry-iteration
-API -- see ``dbentry.h``):
+with ``pvxs::ioc::forEachRecord()`` (a template in ``dbentry.h`` that wraps
+``dbStaticLib``'s entry-iteration API so callers don't hand-write the
+record-type/record double loop), constructing a fresh ``DBEntry`` for each
+record to look up its info fields:
 
 .. code-block:: c++
 
-    #include <dbStaticLib.h>
     #include "dbentry.h"
 
     namespace {
     void onIocBuilt() {
         auto& cache = nsecMaskCache();
-        pvxs::ioc::DBEntry ent;
-        for (long s = dbFirstRecordType(ent); !s; s = dbNextRecordType(ent)) {
-            for (s = dbFirstRecord(ent); !s; s = dbNextRecord(ent)) {
-                auto* prec = static_cast<dbCommon*>(ent->precnode->precord);
-                const char* val = ent.info("Q:time:tag");
-                if (!val)
-                    continue;
-                // ... parse val and insert into cache, see Step 5
-            }
-        }
+        pvxs::ioc::forEachRecord([&cache](dbCommon* prec) {
+            pvxs::ioc::DBEntry ent(prec);
+            const char* val = ent.info("Q:time:tag");
+            if (!val)
+                return;
+            // ... parse val and insert into cache, see Step 5
+        });
     }
     } // namespace
 
@@ -150,14 +148,14 @@ after the prefix and reports failure cleanly:
     #include <cstring>
 
     void onIocBuilt() {
-        // ... (inside the inner loop from Step 4)
+        // ... (inside the forEachRecord callback from Step 4)
         const char* val = ent.info("Q:time:tag");
         if (!val || strncmp(val, "nsec:lsb:", 9) != 0)
-            continue;
+            return;
         char* end = nullptr;
         long dig = strtol(val + 9, &end, 10);
         if (end == val + 9 || *end != '\0' || dig < 1 || dig > 32)
-            continue;
+            return;
         cache[prec] = ~uint32_t(0u) >> (32 - dig);
     }
 
@@ -177,6 +175,8 @@ job: clear the tag bits from ``nanoseconds`` and expose them as
 
     void applyTimeTag(dbCommon* prec, pvxs::Value& node) {
         auto& cache = nsecMaskCache();
+        if (cache.empty())
+            return;
         auto it = cache.find(prec);
         if (it == cache.end())
             return;
@@ -185,6 +185,10 @@ job: clear the tag bits from ``nanoseconds`` and expose them as
         node["timeStamp.nanoseconds"] = int32_t(nsec & ~nsecMask);
         node["timeStamp.userTag"]     = int32_t(nsec &  nsecMask);
     }
+
+The ``cache.empty()`` check is a cheap early exit: it lets an IOC that
+includes this extension but never sets ``Q:time:tag`` skip straight past
+the per-record lookup on every single get.
 
 Note that this unconditionally overwrites ``timeStamp.userTag``, even if
 ``IOCSource::get()`` already populated it from ``prec->utag`` (when
@@ -243,7 +247,6 @@ Putting Steps 3 through 8 together produces the current
     #include <unordered_map>
 
     #include <dbCommon.h>
-    #include <dbStaticLib.h>
 
     #include "dbentry.h"
     #include "sitehooks.h"
@@ -260,25 +263,24 @@ Putting Steps 3 through 8 together produces the current
     void onIocBuilt()
     {
         auto& cache = nsecMaskCache();
-        pvxs::ioc::DBEntry ent;
-        for (long s = dbFirstRecordType(ent); !s; s = dbNextRecordType(ent)) {
-            for (s = dbFirstRecord(ent); !s; s = dbNextRecord(ent)) {
-                auto* prec = static_cast<dbCommon*>(ent->precnode->precord);
-                const char* val = ent.info("Q:time:tag");
-                if (!val || strncmp(val, "nsec:lsb:", 9) != 0)
-                    continue;
-                char* end = nullptr;
-                long dig = strtol(val + 9, &end, 10);
-                if (end == val + 9 || *end != '\0' || dig < 1 || dig > 32)
-                    continue;
-                cache[prec] = ~uint32_t(0u) >> (32 - dig);
-            }
-        }
+        pvxs::ioc::forEachRecord([&cache](dbCommon* prec) {
+            pvxs::ioc::DBEntry ent(prec);
+            const char* val = ent.info("Q:time:tag");
+            if (!val || strncmp(val, "nsec:lsb:", 9) != 0)
+                return;
+            char* end = nullptr;
+            long dig = strtol(val + 9, &end, 10);
+            if (end == val + 9 || *end != '\0' || dig < 1 || dig > 32)
+                return;
+            cache[prec] = ~uint32_t(0u) >> (32 - dig);
+        });
     }
 
     void applyTimeTag(dbCommon* prec, pvxs::Value& node)
     {
         auto& cache = nsecMaskCache();
+        if (cache.empty())
+            return;
         auto it = cache.find(prec);
         if (it == cache.end())
             return;

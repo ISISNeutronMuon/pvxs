@@ -13,20 +13,30 @@
 
 #include "dbentry.h"
 #include "dbinfocache.h"
+#include "sitehooks.h"
 
 namespace pvxs { namespace ioc { namespace site {
+
+namespace {
+// Shared by Entry::lookup() and build()'s defaultKey lookup: find the node
+// for key in a fields vector sorted by name, or nullptr if absent.
+dbInfoNode* findNode(const std::vector<std::pair<const char*, dbInfoNode*>>& fields, const char* key)
+{
+    auto cmp = [](const std::pair<const char*, dbInfoNode*>& e, const char* k) {
+        return strcmp(e.first, k) < 0;
+    };
+    auto it = std::lower_bound(fields.begin(), fields.end(), key, cmp);
+    return (it != fields.end() && strcmp(it->first, key) == 0) ? it->second : nullptr;
+}
+} // namespace
 
 const char* DbInfoCache::Entry::defaultValue() const {
     return defaultNode ? defaultNode->string : nullptr;
 }
 
 const char* DbInfoCache::Entry::lookup(const char* key) const {
-    auto cmp = [](const std::pair<const char*, dbInfoNode*>& e, const char* k) {
-        return strcmp(e.first, k) < 0;
-    };
-    auto it = std::lower_bound(fields.begin(), fields.end(), key, cmp);
-    if (it != fields.end() && strcmp(it->first, key) == 0)
-        return it->second->string;
+    if (auto* node = findNode(fields, key))
+        return node->string;
     return defaultValue();
 }
 
@@ -52,23 +62,16 @@ bool DbInfoCache::build(dbCommon* prec, const char* prefix, const char* defaultK
     Entry& entry = map_[prec];
     entry.fields = std::move(fields);
 
-    if (defaultKey) {
-        auto cmp = [](const std::pair<const char*, dbInfoNode*>& e, const char* k) {
-            return strcmp(e.first, k) < 0;
-        };
-        auto it = std::lower_bound(entry.fields.begin(), entry.fields.end(), defaultKey, cmp);
-        if (it != entry.fields.end() && strcmp(it->first, defaultKey) == 0)
-            entry.defaultNode = it->second;
-    }
+    if (defaultKey)
+        entry.defaultNode = findNode(entry.fields, defaultKey);
     return true;
 }
 
 void DbInfoCache::buildAll(const char* prefix, const char* defaultKey)
 {
-    DBEntry ent;
-    for (long status = dbFirstRecordType(ent); !status; status = dbNextRecordType(ent))
-        for (status = dbFirstRecord(ent); !status; status = dbNextRecord(ent))
-            build(static_cast<dbCommon*>(ent->precnode->precord), prefix, defaultKey);
+    forEachRecord([this, prefix, defaultKey](dbCommon* prec) {
+        build(prec, prefix, defaultKey);
+    });
 }
 
 }}} // pvxs::ioc::site

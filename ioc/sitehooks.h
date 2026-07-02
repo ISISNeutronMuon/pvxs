@@ -7,6 +7,7 @@
 #ifndef PVXS_SITEHOOKS_H
 #define PVXS_SITEHOOKS_H
 
+#include <cstring>
 #include <functional>
 #include <epicsTypes.h>
 #include <dbCommon.h>
@@ -17,6 +18,14 @@
 namespace pvxs {
 namespace ioc {
 namespace site {
+
+// --- Utility (for use by site-specific code) ---
+
+// Returns true if the value of a boolean-style "Q:*" info field represents
+// "set": present, non-empty, and not the literal string "0".
+inline bool infoFlagSet(const char* val) {
+    return val && val[0] != '\0' && std::strcmp(val, "0") != 0;
+}
 
 // --- Registration (called by site-specific code) ---
 

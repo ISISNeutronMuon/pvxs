@@ -247,4 +247,5 @@ def _ensure_site_link():
         return False
 
 if _os.path.isfile(_os.path.join(_site_src, 'index.rst')):
-    _ensure_site_link()
+    if not _ensure_site_link():
+        print("WARNING: could not link or copy site/documentation into documentation/site")

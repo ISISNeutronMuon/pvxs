@@ -18,6 +18,8 @@
 #include <pvxs/unittest.h>
 #include <pvxs/iochooks.h>
 
+#include "testioc.h"
+
 extern "C" {
 extern int testioc_registerRecordDeviceDriver(struct dbBase*);
 }
@@ -25,10 +27,6 @@ extern int testioc_registerRecordDeviceDriver(struct dbBase*);
 using namespace pvxs;
 
 namespace {
-
-struct TestClient : client::Context {
-    TestClient() : client::Context(ioc::server().clientConfig().build()) {}
-};
 
 void testAlarmMessage()
 {

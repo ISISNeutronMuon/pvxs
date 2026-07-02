@@ -20,7 +20,9 @@ def registrar_name(path):
 
 def _has_registrar(path, name):
     with open(path) as f:
-        return name in f.read()
+        # Anchor on the function signature, not a bare name, so an accidental
+        # substring match in a comment or string doesn't wire in a phantom entry.
+        return ('void {}('.format(name)) in f.read()
 
 
 def generate(srcs):
