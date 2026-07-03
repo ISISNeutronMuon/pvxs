@@ -1,0 +1,13 @@
+diff --git a/ioc/Makefile b/ioc/Makefile
+index c4d2944..0577680 100644
+--- a/ioc/Makefile
++++ b/ioc/Makefile
+@@ -28,6 +28,8 @@ SHRLIB_VERSION = $(PVXS_MAJOR_VERSION).$(PVXS_MINOR_VERSION)
+ 
+ pvxsIoc_SRCS += iochooks.cpp
+ pvxsIoc_SRCS += sitehooks.cpp
++pvxsIoc_SRCS += alarmmsg.cpp
++pvxsIoc_SRCS += dbinfocache.cpp
+ 
+ ifdef BASE_3_15
+ 

@@ -1,0 +1,5 @@
+--- a/setup.py
++++ b/setup.py
+@@ -577,1 +577,2 @@
++        "ioc/pvfilter.cpp",
+         "ioc/field.cpp",
