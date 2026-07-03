@@ -213,3 +213,85 @@ individual `Q:pva:access` values (rather than a single allow/deny decision)
 purely so `GroupSource::GroupSource()` can print a specific startup warning
 when a restricted record is added to a group; they play no part in
 enforcement.
+
+### Maintaining these patches
+
+`patches/*.patch` and `patches/<name>/` are **generated artifacts** --
+never hand-edit them. Each patch corresponds to a real branch, listed in
+`patches/scripts/branches.conf`:
+
+| Patch | Base branch | Feature branch |
+|---|---|---|
+| `01-infrastructure` | `master` | `patch-01-infrastructure` |
+| `02-alarm-messages` | `patch-01-infrastructure` | `patch-02-alarm-messages` |
+| `03-pvfilter` | `patch-01-infrastructure` | `patch-03-pvfilter` |
+
+02 and 03 are siblings that both sit directly on 01 (not on each other),
+matching the rule below that every patch other than 01-infrastructure must
+apply and build on top of 01-infrastructure alone.
+
+To change a feature:
+
+1. Check out its feature branch (e.g. `git checkout patch-03-pvfilter`) and
+   edit the real source files normally, then commit -- same as any other
+   change.
+2. Regenerate the patch from the real git diff:
+   `patches/scripts/generate.sh 03-pvfilter` (or with no arguments to
+   regenerate everything).
+3. Run `patches/scripts/verify.sh` to confirm every required combination
+   (01 alone; 01+02; 01+03; all three) still applies cleanly with a plain
+   `git apply` -- exactly how `apply.sh` and CI consume these files. Add
+   `--full` before pushing to also run `make`/`make test-results` for each
+   combination against whatever EPICS Base this checkout's own
+   `configure/RELEASE.local` already points to (no separate Base is
+   fetched or built) -- a generic build+test smoke check, not a
+   replication of CI's full Base-version/compiler matrix.
+
+If the change touches `01-infrastructure` itself, the sibling branches need
+rebasing onto its new tip before regenerating -- see the rebase steps
+below, which are the same whether `01-infrastructure` changed because of
+local work or because upstream `master` moved.
+
+#### Pulling in a new upstream master
+
+When upstream `master` moves and you want the patches to apply on top of
+the new tip:
+
+1. Update your local `master` to the new upstream tip (`git fetch
+   upstream && git checkout master && git merge --ff-only upstream/master`,
+   or however you normally track upstream).
+2. Rebase `patch-01-infrastructure` onto the new `master`:
+   `git checkout patch-01-infrastructure && git rebase master`. Resolve any
+   conflicts the normal way, on the real source files -- this is ordinary
+   git conflict resolution, not patch-text editing.
+3. Rebase the sibling branches onto the *new* `patch-01-infrastructure`
+   tip, replaying only their own commits:
+   `git rebase --onto patch-01-infrastructure <old-patch-01-infrastructure-tip> patch-02-alarm-messages`,
+   and the same for `patch-03-pvfilter`. (`<old-patch-01-infrastructure-tip>`
+   is whatever `patch-01-infrastructure` pointed to *before* step 2 --
+   note it down, or use `git reflog patch-01-infrastructure`, before
+   rebasing.) Resolve any conflicts here the same way.
+4. Regenerate everything: `patches/scripts/generate.sh` with no arguments.
+5. Run `patches/scripts/verify.sh --full` (all combinations) to confirm the
+   result still builds and passes tests against the new upstream master.
+6. Optionally refresh `isis_patches` (this integration branch) the same
+   way -- rebase it onto the new `master`, or just re-derive it from a
+   clean checkout by running `patches/scripts/apply.sh` with no arguments,
+   which applies every patch in order; that's already its documented
+   purpose, so `isis_patches` itself is never hand-maintained.
+
+#### Shared-file insertion conflicts
+
+Two sibling patches sometimes need to insert at the same conceptual spot
+in a file both of them touch (e.g. `02` and `03` both add an entry to
+`ioc/Makefile`'s source list, right after the last existing entry). A
+plain diff would anchor on the line *before* the insertion -- the exact
+same anchor the sibling uses -- so applying both in sequence would
+conflict even though neither actually touches a line the other changed.
+`generate.sh` detects this (any file also touched by a sibling patch on
+the same base) and routes pure-addition hunks in that file through
+`trim_leading_context.py`, which drops the leading context so the hunk is
+found by what follows the insertion instead -- unaffected by whatever a
+sibling already inserted there. Adding a new patch that shares a file with
+an existing one needs no extra step for this; `generate.sh` figures it out
+from `branches.conf` automatically.

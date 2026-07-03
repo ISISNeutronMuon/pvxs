@@ -1,13 +1,13 @@
 #!/bin/sh
 # Reconstruct the isis_patches feature set on top of a clean master checkout.
 #
-# Usage: patches/apply.sh [name ...]
+# Usage: patches/scripts/apply.sh [name ...]
 #
 # Run from the repository root, on a clean checkout of master. With no
 # arguments, applies every patches/*.patch file, in name-sorted order
 # (feature names are numbered 01-, 02-, ... to control ordering). A subset
 # may be given explicitly to build only some features, e.g.:
-#   patches/apply.sh 01-infrastructure 02-alarm-messages
+#   patches/scripts/apply.sh 01-infrastructure 02-alarm-messages
 # (each feature requires 01-infrastructure to be applied first).
 #
 # A name's new files, if any, live in a same-named directory next to its
@@ -16,7 +16,7 @@
 
 set -e
 
-script_dir=$(cd "$(dirname "$0")" && pwd)
+script_dir=$(cd "$(dirname "$0")/.." && pwd)
 repo_root=$(pwd)
 
 if [ "$#" -gt 0 ]; then

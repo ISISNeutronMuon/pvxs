@@ -157,6 +157,10 @@ testalarmmsg_LIBS = pvxsIoc pvxs $(EPICS_BASE_IOC_LIBS)
 TESTFILES += ../testalarmmsg.db
 TESTS += testalarmmsg
 
+endif
+
+ifdef BASE_7_0
+
 TESTPROD_HOST += testpvfilter
 testpvfilter_SRCS += testpvfilter
 testpvfilter_SRCS += capturestd.cpp
@@ -164,10 +168,6 @@ testpvfilter_SRCS += testioc_registerRecordDeviceDriver.cpp
 testpvfilter_LIBS = pvxsIoc pvxs $(EPICS_BASE_IOC_LIBS)
 TESTFILES += ../testpvfilter.db
 TESTS += testpvfilter
-
-endif
-
-ifdef BASE_7_0
 
 TESTPROD_HOST += testqgroup
 testqgroup_SRCS += testqgroup

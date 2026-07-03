@@ -1,11 +1,14 @@
 diff --git a/ioc/Makefile b/ioc/Makefile
+index c4d2944..2b99292 100644
 --- a/ioc/Makefile
 +++ b/ioc/Makefile
-@@ -31,2 +31,3 @@
+@@ -31,3 +31,4 @@ SHRLIB_VERSION = $(PVXS_MAJOR_VERSION).$(PVXS_MINOR_VERSION)
 +pvxsIoc_SRCS += pvfilter.cpp
  
  ifdef BASE_3_15
+ 
 diff --git a/ioc/groupsource.cpp b/ioc/groupsource.cpp
+index adfc35c..84b1012 100644
 --- a/ioc/groupsource.cpp
 +++ b/ioc/groupsource.cpp
 @@ -25,10 +25,14 @@
@@ -204,25 +207,34 @@ index 024f676..b10e269 100644
              pv.claim();
              log_debug_printf(_logname, "Claiming '%s'\n", pv.name());
 diff --git a/ioc/sitehooks.cpp b/ioc/sitehooks.cpp
+index 4bd833f..d285359 100644
 --- a/ioc/sitehooks.cpp
 +++ b/ioc/sitehooks.cpp
-@@ -18,1 +18,3 @@
+@@ -18,3 +18,5 @@ namespace pvxs {
 +void registerPvfilter();
 +
  namespace {
-@@ -47,1 +47,2 @@
+ // Function-local static variables avoid init-order issues with site-specific registrars.
+ std::vector<std::function<void()>>& hooksAtBeginning() {
+@@ -47,3 +49,4 @@ void siteHookDispatch(initHookState state) noexcept
 +    registerPvfilter();
      initHookRegister(siteHookDispatch);
+ }
+ 
 diff --git a/setup.py b/setup.py
+index 52000fe..6710e42 100755
 --- a/setup.py
 +++ b/setup.py
-@@ -578,1 +578,2 @@
+@@ -578,3 +578,4 @@ def define_DSOS(self):
 +        "ioc/pvfilter.cpp",
          "ioc/field.cpp",
+         "ioc/fielddefinition.cpp",
+         "ioc/fieldname.cpp",
 diff --git a/test/Makefile b/test/Makefile
+index bfe42c3..e1a7240 100644
 --- a/test/Makefile
 +++ b/test/Makefile
-@@ -153,3 +153,11 @@
+@@ -157,3 +157,11 @@ endif
 +TESTPROD_HOST += testpvfilter
 +testpvfilter_SRCS += testpvfilter
 +testpvfilter_SRCS += capturestd.cpp
@@ -231,6 +243,6 @@ diff --git a/test/Makefile b/test/Makefile
 +TESTFILES += ../testpvfilter.db
 +TESTS += testpvfilter
 +
- endif
- 
- ifdef BASE_7_0
+ TESTPROD_HOST += testqgroup
+ testqgroup_SRCS += testqgroup
+ testqgroup_SRCS += capturestd.cpp
