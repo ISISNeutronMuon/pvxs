@@ -2,10 +2,7 @@ diff --git a/ioc/Makefile b/ioc/Makefile
 index d5626d3..c4d2944 100644
 --- a/ioc/Makefile
 +++ b/ioc/Makefile
-@@ -27,6 +27,7 @@ LIBRARY += pvxsIoc
- SHRLIB_VERSION = $(PVXS_MAJOR_VERSION).$(PVXS_MINOR_VERSION)
- 
- pvxsIoc_SRCS += iochooks.cpp
+@@ -30,3 +30,4 @@ LIBRARY += pvxsIoc
 +pvxsIoc_SRCS += sitehooks.cpp
  
  ifdef BASE_3_15
@@ -14,10 +11,7 @@ diff --git a/ioc/dbentry.h b/ioc/dbentry.h
 index ca26912..bb214b2 100644
 --- a/ioc/dbentry.h
 +++ b/ioc/dbentry.h
-@@ -59,6 +59,15 @@ public:
-     }
- };
- 
+@@ -62,3 +62,12 @@ public:
 +// Iterate every record currently loaded in the database, invoking fn(prec) for each.
 +template<typename Fn>
 +void forEachRecord(Fn&& fn) {
@@ -34,18 +28,12 @@ diff --git a/ioc/iochooks.cpp b/ioc/iochooks.cpp
 index ae0455d..243dbba 100644
 --- a/ioc/iochooks.cpp
 +++ b/ioc/iochooks.cpp
-@@ -30,6 +30,7 @@
- #include <pvxs/server.h>
- #include <pvxs/source.h>
- 
+@@ -33,3 +33,4 @@
 +#include "sitehooks.h"
  #include "iocshcommand.h"
  #include "utilpvt.h"
  #include "qsrvpvt.h"
-@@ -488,6 +489,7 @@ void pvxsBaseRegistrar() noexcept {
- 
-         // Register our hook handler to intercept certain state changes
-         initHookRegister(&pvxsInitHook);
+@@ -491,3 +492,4 @@ void pvxsBaseRegistrar() noexcept {
 +        site::registerHooks();
  
          if(enableQ) {
@@ -54,18 +42,12 @@ diff --git a/ioc/iocsource.cpp b/ioc/iocsource.cpp
 index da2e251..5079233 100644
 --- a/ioc/iocsource.cpp
 +++ b/ioc/iocsource.cpp
-@@ -19,6 +19,7 @@
- #include <pvxs/log.h>
- 
- #include "alarm.h"
+@@ -22,3 +22,4 @@
 +#include "sitehooks.h"
  #include "iocsource.h"
  #include "dbentry.h"
  #include "dberrormessage.h"
-@@ -349,6 +350,8 @@ void IOCSource::get(Value& node, // node within top level structure addressed by
-             getArrayValue(pChannel, pDbFieldLog, value);
-         }
-     }
+@@ -352,3 +353,5 @@ void IOCSource::get(Value& node, // node within top level structure addressed by
 +
 +    site::postProcessNode(dbChannelRecord(pChannel), node);
  }
@@ -75,10 +57,7 @@ diff --git a/setup.py b/setup.py
 index 26699b4..52000fe 100755
 --- a/setup.py
 +++ b/setup.py
-@@ -574,6 +574,7 @@ def define_DSOS(self):
-         "ioc/credentials.cpp",
-         "ioc/dberrormessage.cpp",
-         "ioc/demo.cpp",
+@@ -577,3 +577,4 @@ def define_DSOS(self):
 +        "ioc/sitehooks.cpp",
          "ioc/field.cpp",
          "ioc/fielddefinition.cpp",

@@ -19,12 +19,9 @@ if [ "$1" = "--full" ]; then
     shift
 fi
 
-scripts_dir=$(cd "$(dirname "$0")" && pwd)
-patches_dir=$(cd "$scripts_dir/.." && pwd)
-repo_root=$(cd "$patches_dir/.." && pwd)
-conf="$scripts_dir/branches.conf"
+. "$(dirname "$0")/patches_env.sh"
 
-all_names=$(grep -v '^[[:space:]]*#' "$conf" | grep -v '^[[:space:]]*$' | awk '{print $1}')
+all_names=$(echo "$all_rows" | awk '{print $1}')
 if [ "$#" -gt 0 ]; then
     names="$*"
 else
@@ -80,9 +77,31 @@ run_combo() {
     echo "== $label: OK =="
 }
 
-echo "$combos" | while IFS= read -r combo; do
+# Each combo is an independent worktree, so run them concurrently -- under
+# --full this is the difference between paying for the sum of every
+# combination's build+test time and paying for only the slowest one.
+set -f
+IFS='
+'
+set -- $combos
+unset IFS
+set +f
+
+pids=""
+for combo in "$@"; do
     [ -z "$combo" ] && continue
-    run_combo "$combo"
+    run_combo "$combo" &
+    pids="$pids $!"
 done
+
+fail=0
+for pid in $pids; do
+    wait "$pid" || fail=1
+done
+
+if [ "$fail" = 1 ]; then
+    echo "verify.sh: one or more combinations failed (see above; failing worktrees are left in place)" >&2
+    exit 1
+fi
 
 echo "All combinations verified."

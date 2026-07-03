@@ -12,23 +12,11 @@
 
 set -e
 
-scripts_dir=$(cd "$(dirname "$0")" && pwd)
-patches_dir=$(cd "$scripts_dir/.." && pwd)
-repo_root=$(cd "$patches_dir/.." && pwd)
-conf="$scripts_dir/branches.conf"
+. "$(dirname "$0")/patches_env.sh"
 
-if [ ! -e "$conf" ]; then
-    echo "generate.sh: missing $conf" >&2
-    exit 1
-fi
-
-# Read the requested (or all) rows from branches.conf up front, so an
-# unknown name is reported before any work is done. all_rows is kept around
-# (even when a subset is requested) to find sibling patches sharing a base
-# below.
-all_rows=$(grep -v '^[[:space:]]*#' "$conf" | grep -v '^[[:space:]]*$')
+# Read the requested (or all) rows up front, so an unknown name is reported
+# before any work is done.
 rows="$all_rows"
-
 if [ "$#" -gt 0 ]; then
     wanted="$*"
     filtered=""
@@ -60,7 +48,10 @@ echo "$rows" | while IFS= read -r row; do
 
     echo "== $name: diffing $base..$feature =="
 
-    unexpected=$(git diff --diff-filter=CR --name-only "$base" "$feature")
+    # One status pass covers rename/copy rejection, new files to copy
+    # verbatim, and modified/deleted files to diff.
+    status=$(git diff --name-status "$base" "$feature")
+    unexpected=$(echo "$status" | awk '$1 ~ /^[RC]/')
     if [ -n "$unexpected" ]; then
         echo "generate.sh: $name: rename/copy changes aren't supported by this script:" >&2
         echo "$unexpected" >&2
@@ -68,7 +59,7 @@ echo "$rows" | while IFS= read -r row; do
     fi
 
     dir="$patches_dir/$name"
-    added=$(git diff --diff-filter=A --name-only "$base" "$feature")
+    added=$(echo "$status" | awk '$1 == "A" {print $2}')
     rm -rf "$dir"
     if [ -n "$added" ]; then
         mkdir -p "$dir"
@@ -80,45 +71,24 @@ echo "$rows" | while IFS= read -r row; do
         done
     fi
 
-    # Files also touched (added or modified) by a sibling patch stacked on
-    # the same base: two siblings independently appending to the same list
-    # (ioc/Makefile's SRCS, setup.py's DSOS, sitehooks.cpp's registerHooks())
-    # insert at the same conceptual spot, so a default-context diff for
-    # either one anchors on the *other's* insertion point too and the two
-    # conflict when applied in sequence. Route these through
-    # trim_leading_context.py, which drops the leading (before-insertion)
-    # context from pure-addition hunks so each sibling's hunk is instead
-    # anchored only by what follows it -- unaffected by what a sibling
-    # inserted earlier at the same spot. See that script for the full
-    # explanation.
-    sibling_files=$(echo "$all_rows" | while IFS= read -r other; do
-        [ -z "$other" ] && continue
-        set -- $other
-        oname="$1"; obase="$2"; ofeature="$3"
-        [ "$oname" = "$name" ] && continue
-        [ "$obase" = "$base" ] || continue
-        git diff --diff-filter=AM --name-only "$obase" "$ofeature"
-    done)
-
     patch="$patches_dir/$name.patch"
-    changed=$(git diff --diff-filter=MD --name-only "$base" "$feature")
+    changed=$(echo "$status" | awk '$1 == "M" || $1 == "D" {print $2}')
     if [ -n "$changed" ]; then
-        : > "$patch"
-        echo "$changed" | while IFS= read -r f; do
-            [ -z "$f" ] && continue
-            shared=0
-            for sf in $sibling_files; do
-                [ "$sf" = "$f" ] && shared=1 && break
-            done
-            if [ "$shared" = "1" ]; then
-                git diff --no-color "$base" "$feature" -- "$f" \
-                    | python3 "$scripts_dir/trim_leading_context.py" >> "$patch"
-                echo "  wrote hunk for $f (leading context trimmed: shared with a sibling patch)"
-            else
-                git diff --no-color "$base" "$feature" -- "$f" >> "$patch"
-                echo "  wrote hunk for $f"
-            fi
-        done
+        # Pure-addition hunks have their leading context dropped: two
+        # sibling patches that each append to the same shared file (e.g.
+        # ioc/Makefile's SRCS list, setup.py's DSOS, sitehooks.cpp's
+        # registerHooks()) both anchor by default on the line *before* the
+        # insertion -- the same anchor -- so applying both in sequence
+        # conflicts even though neither touches a line the other changed.
+        # Dropping the leading context anchors the hunk on what follows
+        # instead, which no sibling contests. This is a no-op for files no
+        # other patch touches, so it's applied to every diff rather than
+        # only to files some other patch happens to also change -- which
+        # patches end up stacked together is a fact about the combination
+        # model (see verify.sh), not about any one file. See
+        # trim_leading_context.py for the full explanation.
+        git diff --no-color "$base" "$feature" -- $changed \
+            | python3 "$scripts_dir/trim_leading_context.py" > "$patch"
         echo "  wrote $(basename "$patch")"
     else
         rm -f "$patch"

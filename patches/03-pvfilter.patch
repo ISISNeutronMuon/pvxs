@@ -11,10 +11,7 @@ diff --git a/ioc/groupsource.cpp b/ioc/groupsource.cpp
 index adfc35c..84b1012 100644
 --- a/ioc/groupsource.cpp
 +++ b/ioc/groupsource.cpp
-@@ -25,10 +25,14 @@
- #include "groupsrcsubscriptionctx.h"
- #include "iocshcommand.h"
- #include "iocsource.h"
+@@ -28,7 +28,11 @@
 +#include "sitehooks.h"
  #include "securitylogger.h"
  #include "securityclient.h"
@@ -26,19 +23,13 @@ index adfc35c..84b1012 100644
  namespace pvxs {
  namespace ioc {
  
-@@ -64,6 +68,8 @@ void onPutGroup(Group& group, bool atomic, TriState forceProcessing,
- 
- static
- void onStartSubscription(const std::shared_ptr<GroupSourceSubscriptionCtx>& groupSubscriptionCtx);
+@@ -67,3 +71,5 @@ void onPutGroup(Group& group, bool atomic, TriState forceProcessing,
 +static
 +bool fieldAccessAllowed(const Field& field, const std::string& peerAddr);
  
  /**
   * Constructor for GroupSource registrar.
-@@ -82,7 +88,26 @@ GroupSource::GroupSource()
-         // For each defined group, add group name to the list of all records
-         for (auto& groupMapEntry: config.groupMap) {
-             auto& groupName = groupMapEntry.first;
+@@ -85,4 +91,23 @@ GroupSource::GroupSource()
 +            auto& group = groupMapEntry.second;
              names->insert(groupName);
 +
@@ -62,18 +53,12 @@ index adfc35c..84b1012 100644
          }
      }
  
-@@ -395,6 +420,7 @@ void subscriptionPropertiesCallback(void* userArg, dbChannel* pChannel,
- void GroupSource::onSubscribe(const std::shared_ptr<GroupSourceSubscriptionCtx>& groupSubscriptionCtx,
-         std::unique_ptr<server::MonitorSetupOp>&& subscriptionOperation) const {
-     // inform peer of data type and acquire control of the subscription queue
+@@ -398,3 +423,4 @@ void subscriptionPropertiesCallback(void* userArg, dbChannel* pChannel,
 +    auto peerAddr(subscriptionOperation->peerName());
      groupSubscriptionCtx->subscriptionControl = subscriptionOperation
              ->connect(groupSubscriptionCtx->group.valueTemplate);
  
-@@ -419,6 +445,14 @@ void GroupSource::onSubscribe(const std::shared_ptr<GroupSourceSubscriptionCtx>&
- 
-         } else if(!field.value) {
-             continue; // no associated dbChannel
+@@ -422,3 +448,11 @@ void GroupSource::onSubscribe(const std::shared_ptr<GroupSourceSubscriptionCtx>&
 +
 +        } else if(!fieldAccessAllowed(field, peerAddr)) {
 +            // Q:pva:access: don't subscribe this field for this requester.
@@ -85,10 +70,7 @@ index adfc35c..84b1012 100644
          }
  
          auto leafNode = field.findIn(groupSubscriptionCtx->currentValue);
-@@ -450,6 +484,19 @@ void GroupSource::onSubscribe(const std::shared_ptr<GroupSourceSubscriptionCtx>&
-     });
- }
- 
+@@ -453,3 +487,16 @@ void GroupSource::onSubscribe(const std::shared_ptr<GroupSourceSubscriptionCtx>&
 +/**
 + * Returns true if this group field's own record (if any) allows access from peerAddr,
 + * per Q:pva:access (see pvfilter.cpp). Fields with no associated
@@ -105,10 +87,7 @@ index adfc35c..84b1012 100644
  static
  bool getGroupField(const Field& field, Value valueTarget, const std::string& groupName,
          const std::unique_ptr<server::ExecOp>& getOperation) {
-@@ -494,6 +541,10 @@ void onGet(Group& group, const std::unique_ptr<server::ExecOp>& getOperation) {
-         for (auto& field: group.fields) {
-             if(field.info.type == MappingInfo::Proc || field.info.type==MappingInfo::Structure)
-                 continue;
+@@ -497,3 +544,7 @@ void onGet(Group& group, const std::unique_ptr<server::ExecOp>& getOperation) {
 +            // Q:pva:access: leave this field at its empty/default
 +            // value rather than reading it, per-field, for this requester
 +            if(!fieldAccessAllowed(field, getOperation->peerName()))
@@ -116,10 +95,7 @@ index adfc35c..84b1012 100644
              // find the leaf node in which to set the value
              auto leafNode = field.findIn(returnValue);
  
-@@ -512,6 +563,10 @@ void onGet(Group& group, const std::unique_ptr<server::ExecOp>& getOperation) {
-         for (auto& field: group.fields) {
-             if(field.info.type == MappingInfo::Proc || field.info.type==MappingInfo::Structure)
-                 continue;
+@@ -515,3 +566,7 @@ void onGet(Group& group, const std::unique_ptr<server::ExecOp>& getOperation) {
 +            // Q:pva:access: leave this field at its empty/default
 +            // value rather than reading it, per-field, for this requester
 +            if(!fieldAccessAllowed(field, getOperation->peerName()))
@@ -162,10 +138,7 @@ diff --git a/ioc/singlesource.cpp b/ioc/singlesource.cpp
 index 024f676..b10e269 100644
 --- a/ioc/singlesource.cpp
 +++ b/ioc/singlesource.cpp
-@@ -26,6 +26,7 @@
- #include "dberrormessage.h"
- #include "dblocker.h"
- #include "iocsource.h"
+@@ -29,3 +29,4 @@
 +#include "sitehooks.h"
  #include "singlesource.h"
  #include "singlesrcsubscriptionctx.h"
@@ -187,20 +160,14 @@ index 024f676..b10e269 100644
  
      allRecords.names = names;
  
-@@ -434,6 +433,9 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
-         return;
-     }
- 
+@@ -437,3 +436,6 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
 +    if (!site::isChannelAllowed(sourceName, channelControl->peerName().c_str()))
 +        return;
 +
      log_debug_printf(_logname, "Accepting channel for '%s'\n", sourceName);
  
      auto sInfo(std::make_shared<SingleInfo>(std::move(pDbChannel)));
-@@ -466,6 +468,8 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
-  */
- void SingleSource::onSearch(Search& searchOperation) {
-     for (auto& pv: searchOperation) {
+@@ -469,3 +471,5 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
 +        if (!site::isChannelAllowed(pv.name(), searchOperation.source()))
 +            continue;
          if (!dbChannelTest(pv.name())) {
