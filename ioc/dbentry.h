@@ -59,6 +59,15 @@ public:
     }
 };
 
+// Iterate every record currently loaded in the database, invoking fn(prec) for each.
+template<typename Fn>
+void forEachRecord(Fn&& fn) {
+    DBEntry ent;
+    for (long status = dbFirstRecordType(ent); !status; status = dbNextRecordType(ent))
+        for (status = dbFirstRecord(ent); !status; status = dbNextRecord(ent))
+            fn(static_cast<dbCommon*>(ent->precnode->precord));
+}
+
 } // ioc
 } // pvxs
 #endif //PVXS_DBENTRY_H

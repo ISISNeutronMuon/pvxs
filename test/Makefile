@@ -150,6 +150,21 @@ TESTFILES += ../testqsinglelsi.db
 TESTFILES += ../testioc.acf
 TESTS += testqsingle
 
+TESTPROD_HOST += testalarmmsg
+testalarmmsg_SRCS += testalarmmsg
+testalarmmsg_SRCS += testioc_registerRecordDeviceDriver.cpp
+testalarmmsg_LIBS = pvxsIoc pvxs $(EPICS_BASE_IOC_LIBS)
+TESTFILES += ../testalarmmsg.db
+TESTS += testalarmmsg
+
+TESTPROD_HOST += testpvfilter
+testpvfilter_SRCS += testpvfilter
+testpvfilter_SRCS += capturestd.cpp
+testpvfilter_SRCS += testioc_registerRecordDeviceDriver.cpp
+testpvfilter_LIBS = pvxsIoc pvxs $(EPICS_BASE_IOC_LIBS)
+TESTFILES += ../testpvfilter.db
+TESTS += testpvfilter
+
 endif
 
 ifdef BASE_7_0

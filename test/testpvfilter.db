@@ -1,0 +1,29 @@
+record(ai, "test:normal") {
+}
+
+record(ai, "test:disabled") {
+    info(Q:pv:disable, "1")
+    field(VAL, "12345")
+    info(Q:group, {
+        "test:grp": {
+            "disabled": {+channel:"VAL", +putorder:0}
+        }
+    })
+}
+
+record(ai, "test:enabled0") {
+    info(Q:pv:disable, "0")
+}
+
+record(ai, "test:loopback_only") {
+    info(Q:pv:loopback_only, "1")
+    info(Q:group, {
+        "test:grp": {
+            "loopback": {+channel:"VAL"}
+        }
+    })
+}
+
+record(ai, "test:loopback_enabled0") {
+    info(Q:pv:loopback_only, "0")
+}
