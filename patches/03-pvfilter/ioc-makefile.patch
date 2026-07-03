@@ -1,6 +1,0 @@
---- a/ioc/Makefile
-+++ b/ioc/Makefile
-@@ -30,2 +30,3 @@
-+pvxsIoc_SRCS += pvfilter.cpp
- 
- ifdef BASE_3_15

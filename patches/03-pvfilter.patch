@@ -1,3 +1,10 @@
+diff --git a/ioc/Makefile b/ioc/Makefile
+--- a/ioc/Makefile
++++ b/ioc/Makefile
+@@ -31,2 +31,3 @@
++pvxsIoc_SRCS += pvfilter.cpp
+ 
+ ifdef BASE_3_15
 diff --git a/ioc/groupsource.cpp b/ioc/groupsource.cpp
 index adfc35c..57173aa 100644
 --- a/ioc/groupsource.cpp
@@ -149,3 +156,82 @@ index adfc35c..57173aa 100644
          // Do processing if required
          IOCSource::doPostProcessing(field.value, forceProcessing);
          return true;
+diff --git a/ioc/singlesource.cpp b/ioc/singlesource.cpp
+index 024f676..b10e269 100644
+--- a/ioc/singlesource.cpp
++++ b/ioc/singlesource.cpp
+@@ -26,6 +26,7 @@
+ #include "dberrormessage.h"
+ #include "dblocker.h"
+ #include "iocsource.h"
++#include "sitehooks.h"
+ #include "singlesource.h"
+ #include "singlesrcsubscriptionctx.h"
+ #include "credentials.h"
+@@ -399,12 +400,10 @@ SingleSource::SingleSource()
+     auto names(std::make_shared<std::set<std::string >>());
+ 
+     //  For each record type and for each record in that type, add record name to the list of all records
+-    DBEntry dbEntry;
+-    for (long status = dbFirstRecordType(dbEntry); !status; status = dbNextRecordType(dbEntry)) {
+-        for (status = dbFirstRecord(dbEntry); !status; status = dbNextRecord(dbEntry)) {
+-            names->insert(dbEntry->precnode->recordname);
+-        }
+-    }
++    forEachRecord([&names](dbCommon* prec) {
++        if (site::isChannelAllowed(prec->name, nullptr))
++            names->insert(prec->name);
++    });
+ 
+     allRecords.names = names;
+ 
+@@ -434,6 +433,9 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
+         return;
+     }
+ 
++    if (!site::isChannelAllowed(sourceName, channelControl->peerName().c_str()))
++        return;
++
+     log_debug_printf(_logname, "Accepting channel for '%s'\n", sourceName);
+ 
+     auto sInfo(std::make_shared<SingleInfo>(std::move(pDbChannel)));
+@@ -466,6 +468,8 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
+  */
+ void SingleSource::onSearch(Search& searchOperation) {
+     for (auto& pv: searchOperation) {
++        if (!site::isChannelAllowed(pv.name(), searchOperation.source()))
++            continue;
+         if (!dbChannelTest(pv.name())) {
+             pv.claim();
+             log_debug_printf(_logname, "Claiming '%s'\n", pv.name());
+diff --git a/ioc/sitehooks.cpp b/ioc/sitehooks.cpp
+--- a/ioc/sitehooks.cpp
++++ b/ioc/sitehooks.cpp
+@@ -18,1 +18,3 @@
++void registerPvfilter();
++
+ namespace {
+@@ -47,1 +47,2 @@
++    registerPvfilter();
+     initHookRegister(siteHookDispatch);
+diff --git a/setup.py b/setup.py
+--- a/setup.py
++++ b/setup.py
+@@ -578,1 +578,2 @@
++        "ioc/pvfilter.cpp",
+         "ioc/field.cpp",
+diff --git a/test/Makefile b/test/Makefile
+--- a/test/Makefile
++++ b/test/Makefile
+@@ -153,3 +153,11 @@
++TESTPROD_HOST += testpvfilter
++testpvfilter_SRCS += testpvfilter
++testpvfilter_SRCS += capturestd.cpp
++testpvfilter_SRCS += testioc_registerRecordDeviceDriver.cpp
++testpvfilter_LIBS = pvxsIoc pvxs $(EPICS_BASE_IOC_LIBS)
++TESTFILES += ../testpvfilter.db
++TESTS += testpvfilter
++
+ endif
+ 
+ ifdef BASE_7_0

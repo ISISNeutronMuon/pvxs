@@ -1,0 +1,66 @@
+diff --git a/ioc/Makefile b/ioc/Makefile
+index c4d2944..0577680 100644
+--- a/ioc/Makefile
++++ b/ioc/Makefile
+@@ -28,6 +28,8 @@ SHRLIB_VERSION = $(PVXS_MAJOR_VERSION).$(PVXS_MINOR_VERSION)
+ 
+ pvxsIoc_SRCS += iochooks.cpp
+ pvxsIoc_SRCS += sitehooks.cpp
++pvxsIoc_SRCS += alarmmsg.cpp
++pvxsIoc_SRCS += dbinfocache.cpp
+ 
+ ifdef BASE_3_15
+ 
+diff --git a/setup.py b/setup.py
+index 52000fe..9295676 100755
+--- a/setup.py
++++ b/setup.py
+@@ -575,6 +575,8 @@ def define_DSOS(self):
+         "ioc/dberrormessage.cpp",
+         "ioc/demo.cpp",
+         "ioc/sitehooks.cpp",
++        "ioc/alarmmsg.cpp",
++        "ioc/dbinfocache.cpp",
+         "ioc/field.cpp",
+         "ioc/fielddefinition.cpp",
+         "ioc/fieldname.cpp",
+diff --git a/ioc/sitehooks.cpp b/ioc/sitehooks.cpp
+index 4bd833f..deab920 100644
+--- a/ioc/sitehooks.cpp
++++ b/ioc/sitehooks.cpp
+@@ -15,6 +15,9 @@ namespace pvxs {
+ namespace ioc {
+ namespace site {
+ 
++// Forward declarations: each extension's registrar, defined in its own .cpp.
++void registerAlarmmsg();
++
+ namespace {
+ // Function-local static variables avoid init-order issues with site-specific registrars.
+ std::vector<std::function<void()>>& hooksAtBeginning() {
+@@ -44,6 +47,7 @@ void siteHookDispatch(initHookState state) noexcept
+ 
+ void registerHooks()
+ {
++    registerAlarmmsg();
+     initHookRegister(siteHookDispatch);
+ }
+ 
+diff --git a/test/Makefile b/test/Makefile
+index bfe42c3..2c7e475 100644
+--- a/test/Makefile
++++ b/test/Makefile
+@@ -150,6 +150,13 @@ TESTFILES += ../testqsinglelsi.db
+ TESTFILES += ../testioc.acf
+ TESTS += testqsingle
+ 
++TESTPROD_HOST += testalarmmsg
++testalarmmsg_SRCS += testalarmmsg
++testalarmmsg_SRCS += testioc_registerRecordDeviceDriver.cpp
++testalarmmsg_LIBS = pvxsIoc pvxs $(EPICS_BASE_IOC_LIBS)
++TESTFILES += ../testalarmmsg.db
++TESTS += testalarmmsg
++
+ endif
+ 
+ ifdef BASE_7_0
