@@ -19,6 +19,9 @@ namespace pvxs {
 namespace ioc {
 namespace site {
 
+// Forward declarations: each extension's registrar, defined in its own .cpp.
+void registerAlarmmsg();
+
 namespace {
 // Function-local static variables avoid init-order issues with site-specific registrars.
 std::vector<std::function<void()>>& hooksAtBeginning() {
@@ -54,6 +57,7 @@ void siteHookDispatch(initHookState state) noexcept
 
 void registerHooks()
 {
+    registerAlarmmsg();
     initHookRegister(siteHookDispatch);
 
     // If a site extension registered a replacement for the core-registered
