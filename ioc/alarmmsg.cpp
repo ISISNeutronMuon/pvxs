@@ -34,7 +34,13 @@ pvxs::ioc::site::DbInfoCache& infoCache() {
  *   HIHI -> Q:HIHI_AMSG, HIGH -> Q:HIGH_AMSG,
  *   LOLO -> Q:LOLO_AMSG, LOW  -> Q:LOW_AMSG,
  *   STATE -> Q:STATE<n>_AMSG  (n = value.index from the PVA node, not the record)
- * Any unmatched alarm or missing key falls back to Q:DEFAULT_AMSG.
+ * Q:DEFAULT_AMSG is only consulted as a fallback for these five statuses,
+ * when their own specific key is missing -- e.g. HIGH_ALARM with no
+ * Q:HIGH_AMSG set. Any other alarm status (READ_ALARM, SCAN_ALARM, etc.,
+ * not listed above) is left alone: alarm.message is not touched here at
+ * all, regardless of whether Q:DEFAULT_AMSG is set. It keeps whatever
+ * IOCSource::get() already wrote before calling this post-processor --
+ * the raw alarm status name (e.g. "READ", "SCAN"), not the empty string.
  */
 void applyAlarmMessage(dbCommon* prec, pvxs::Value& node)
 {

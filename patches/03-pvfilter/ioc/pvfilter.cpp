@@ -22,16 +22,19 @@
  * in-memory map for zero-overhead per-request lookup.
  *
  * Scope: enforcement lives here (isChannelAllowed()) for SingleSource's own
- * direct single-PV channel, but Group PVs (GroupSource) enforce the same
- * flags themselves, per-field, at ioc/groupsource.cpp's onGet/onPutGroup/
- * onSubscribe -- via the isPvDisabled()/isPvLoopbackOnly() queries below --
- * rather than by calling isChannelAllowed() here. A flagged field is blanked
- * on GET, rejects PUT, and is excluded from monitor updates within an
- * otherwise-still-served group; the rest of the group and the group PV
- * itself are unaffected. GroupConfigProcessor::initialiseGroupFields()
- * (groupconfigprocessor.cpp) also warns at group-processing time when a
- * flagged record is added to a group, so the .db author notices even before
- * any client touches that field.
+ * direct single-PV channel. Group PVs (GroupSource) reuse isChannelAllowed()
+ * itself, per-field, at ioc/groupsource.cpp's onGet/onPutGroup/onSubscribe
+ * (via a local fieldAccessAllowed() helper there) -- it is not a separate
+ * enforcement path. A flagged field is blanked on GET, rejects PUT, and is
+ * excluded from monitor updates within an otherwise-still-served group; the
+ * rest of the group and the group PV itself are unaffected.
+ *
+ * isPvDisabled()/isPvLoopbackOnly() below expose the individual flags
+ * (rather than a single allow/deny decision) purely so
+ * GroupSource::GroupSource() (groupsource.cpp) can print a specific startup
+ * warning when a flagged record is added to a group, so the .db author
+ * notices even before any client touches that field. They play no part in
+ * enforcement.
  */
 
 #include <cstring>
@@ -48,6 +51,7 @@
 #  include <winsock2.h>
 #  include <ws2tcpip.h>
 #else
+#  include <sys/socket.h>
 #  include <arpa/inet.h>
 #  include <netinet/in.h>
 #endif

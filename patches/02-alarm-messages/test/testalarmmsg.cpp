@@ -7,10 +7,12 @@
 #include <string>
 
 #include <testMain.h>
+#include <alarm.h>
 #include <dbAccess.h>
 #include <dbStaticLib.h>
 #include <dbUnitTest.h>
 #include <epicsExit.h>
+#include <recGbl.h>
 
 #include <pvxs/log.h>
 #include <pvxs/client.h>
@@ -18,6 +20,7 @@
 #include <pvxs/unittest.h>
 #include <pvxs/iochooks.h>
 
+#include "dblocker.h"
 #include "testioc.h"
 
 extern "C" {
@@ -90,6 +93,33 @@ void testDefaultMsgUpdate()
     testStrEq(val["alarm.message"].as<std::string>(), "Updated message");
 }
 
+void testDefaultMsgNotForUnmatchedAlarms()
+{
+    testDiag("%s", __func__);
+    TestClient ctxt;
+
+    // Q:DEFAULT_AMSG is only consulted as a fallback for the five statuses
+    // applyAlarmMessage() switches on (HIHI/HIGH/LOLO/LOW/STATE) when their
+    // own specific key is missing -- not for any other alarm status. For
+    // those, alarm.message keeps the raw status name that IOCSource::get()
+    // already wrote before postProcessNode() ran (see iocsource.cpp), e.g.
+    // "READ" or "SCAN" -- NOT the empty string, and NOT Q:DEFAULT_AMSG.
+    // READ_ALARM/SCAN_ALARM cannot be produced by a simple field PUT, so
+    // drive STAT via recGblSetSevr()/recGblResetAlarms() instead, as device
+    // support would.
+    dbCommon* prec = testdbRecordPtr("test:amsg:unmatched");
+
+    for (auto stat : {std::make_pair(READ_ALARM, "READ"), std::make_pair(SCAN_ALARM, "SCAN")}) {
+        {
+            ioc::DBLocker L(prec);
+            recGblSetSevr(prec, stat.first, INVALID_ALARM);
+            recGblResetAlarms(prec);
+        }
+        auto val = ctxt.get("test:amsg:unmatched").exec()->wait(5.0);
+        testStrEq(val["alarm.message"].as<std::string>(), stat.second);
+    }
+}
+
 void testAlarmMessageState()
 {
     testDiag("%s", __func__);
@@ -107,7 +137,7 @@ void testAlarmMessageState()
 
 MAIN(testalarmmsg)
 {
-    testPlan(51);
+    testPlan(53);
     testSetup();
     pvxs::logger_config_env();
     {
@@ -118,6 +148,7 @@ MAIN(testalarmmsg)
         ioc.init();
         testAlarmMessage();
         testDefaultMsgUpdate();
+        testDefaultMsgNotForUnmatchedAlarms();
         testAlarmMessageState();
     }
     epicsExitCallAtExits();

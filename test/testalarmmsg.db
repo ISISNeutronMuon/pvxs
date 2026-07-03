@@ -71,3 +71,6 @@ record(mbbi, "test:amsg:state") {
     info(Q:STATE14_AMSG, "State 14 alarm")
     info(Q:STATE15_AMSG, "State 15 alarm")
 }
+record(ai, "test:amsg:unmatched") {
+    info(Q:DEFAULT_AMSG, "Should never appear")
+}
