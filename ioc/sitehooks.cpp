@@ -19,6 +19,8 @@ namespace pvxs {
 namespace ioc {
 namespace site {
 
+void registerPvfilter();
+
 namespace {
 // Function-local static variables avoid init-order issues with site-specific registrars.
 std::vector<std::function<void()>>& hooksAtBeginning() {
@@ -54,6 +56,7 @@ void siteHookDispatch(initHookState state) noexcept
 
 void registerHooks()
 {
+    registerPvfilter();
     initHookRegister(siteHookDispatch);
 
     // If a site extension registered a replacement for the core-registered

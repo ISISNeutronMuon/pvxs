@@ -26,6 +26,7 @@
 #include "dberrormessage.h"
 #include "dblocker.h"
 #include "iocsource.h"
+#include "sitehooks.h"
 #include "singlesource.h"
 #include "singlesrcsubscriptionctx.h"
 #include "credentials.h"
@@ -399,12 +400,10 @@ SingleSource::SingleSource()
     auto names(std::make_shared<std::set<std::string >>());
 
     //  For each record type and for each record in that type, add record name to the list of all records
-    DBEntry dbEntry;
-    for (long status = dbFirstRecordType(dbEntry); !status; status = dbNextRecordType(dbEntry)) {
-        for (status = dbFirstRecord(dbEntry); !status; status = dbNextRecord(dbEntry)) {
-            names->insert(dbEntry->precnode->recordname);
-        }
-    }
+    forEachRecord([&names](dbCommon* prec) {
+        if (site::isChannelAllowed(prec->name, nullptr))
+            names->insert(prec->name);
+    });
 
     allRecords.names = names;
 
@@ -433,6 +432,9 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
         log_debug_printf(_logname, "Ignore requested channel '%s' : %s\n", sourceName, e.what());
         return;
     }
+
+    if (!site::isChannelAllowed(sourceName, channelControl->peerName().c_str()))
+        return;
 
     log_debug_printf(_logname, "Accepting channel for '%s'\n", sourceName);
 
@@ -466,6 +468,8 @@ void SingleSource::onCreate(std::unique_ptr<server::ChannelControl>&& channelCon
  */
 void SingleSource::onSearch(Search& searchOperation) {
     for (auto& pv: searchOperation) {
+        if (!site::isChannelAllowed(pv.name(), searchOperation.source()))
+            continue;
         if (!dbChannelTest(pv.name())) {
             pv.claim();
             log_debug_printf(_logname, "Claiming '%s'\n", pv.name());

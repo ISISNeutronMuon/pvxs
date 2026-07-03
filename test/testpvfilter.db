@@ -1,0 +1,29 @@
+record(ai, "test:normal") {
+}
+
+record(ai, "test:disabled") {
+    info(Q:pva:access, "disable")
+    field(VAL, "12345")
+    info(Q:group, {
+        "test:grp": {
+            "disabled": {+channel:"VAL", +putorder:0}
+        }
+    })
+}
+
+record(ai, "test:enabled_explicit") {
+    info(Q:pva:access, "enable")
+}
+
+record(ai, "test:loopback_only") {
+    info(Q:pva:access, "loopback_only")
+    info(Q:group, {
+        "test:grp": {
+            "loopback": {+channel:"VAL"}
+        }
+    })
+}
+
+record(ai, "test:access_typo") {
+    info(Q:pva:access, "loopback_ony")
+}
