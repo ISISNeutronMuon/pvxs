@@ -574,6 +574,7 @@ def define_DSOS(self):
         "ioc/credentials.cpp",
         "ioc/dberrormessage.cpp",
         "ioc/demo.cpp",
+        "ioc/sitehooks.cpp",
         "ioc/field.cpp",
         "ioc/fielddefinition.cpp",
         "ioc/fieldname.cpp",
