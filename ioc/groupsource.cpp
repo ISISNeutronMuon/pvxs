@@ -91,7 +91,7 @@ GroupSource::GroupSource()
             auto& group = groupMapEntry.second;
             names->insert(groupName);
 
-            // Q:pv:disable / Q:pv:loopback_only are enforced per-field within
+            // Q:pva:access="disable"/"loopback_only" is enforced per-field within
             // a group (see onGet/onPutGroup/onSubscribe below), but warn here
             // anyway so the .db author sees it at load time, before any
             // client actually touches the field.
@@ -100,11 +100,11 @@ GroupSource::GroupSource()
                     continue;
                 const char* recName = dbChannelRecord(field.value)->name;
                 if (site::isPvDisabled(recName))
-                    fprintf(stderr, "%s.%s Warning: record \"%s\" has Q:pv:disable set; "
-                                    "this group field will be blanked on GET and reject PUT\n",
+                    fprintf(stderr, "%s.%s Warning: record \"%s\" has Q:pva:access=\"disable\"; "
+                                    "this group field will be omitted from GET and reject PUT\n",
                             groupName.c_str(), field.fullName.c_str(), recName);
                 if (site::isPvLoopbackOnly(recName))
-                    fprintf(stderr, "%s.%s Warning: record \"%s\" has Q:pv:loopback_only set; "
+                    fprintf(stderr, "%s.%s Warning: record \"%s\" has Q:pva:access=\"loopback_only\"; "
                                     "this group field will be restricted to loopback clients\n",
                             groupName.c_str(), field.fullName.c_str(), recName);
             }
@@ -447,7 +447,7 @@ void GroupSource::onSubscribe(const std::shared_ptr<GroupSourceSubscriptionCtx>&
             continue; // no associated dbChannel
 
         } else if(!fieldAccessAllowed(field, peerAddr)) {
-            // Q:pv:disable / Q:pv:loopback_only: don't subscribe this field for this requester.
+            // Q:pva:access: don't subscribe this field for this requester.
             // Unlike the !field.value case above, this field does have a dbChannel, so the
             // FieldSubscriptionCtx ctor didn't already mark it primed -- do so here, or
             // subscriptionPost()'s priming wait would block forever on an event that never comes.
@@ -486,7 +486,7 @@ void GroupSource::onSubscribe(const std::shared_ptr<GroupSourceSubscriptionCtx>&
 
 /**
  * Returns true if this group field's own record (if any) allows access from peerAddr,
- * per Q:pv:disable / Q:pv:loopback_only (see pvfilter.cpp). Fields with no associated
+ * per Q:pva:access (see pvfilter.cpp). Fields with no associated
  * dbChannel (Const, Structure, ...) are never restricted by these per-record filters.
  *
  * @param field the group field to check
@@ -541,7 +541,7 @@ void onGet(Group& group, const std::unique_ptr<server::ExecOp>& getOperation) {
         for (auto& field: group.fields) {
             if(field.info.type == MappingInfo::Proc || field.info.type==MappingInfo::Structure)
                 continue;
-            // Q:pv:disable / Q:pv:loopback_only: leave this field at its empty/default
+            // Q:pva:access: leave this field at its empty/default
             // value rather than reading it, per-field, for this requester
             if(!fieldAccessAllowed(field, getOperation->peerName()))
                 continue;
@@ -563,7 +563,7 @@ void onGet(Group& group, const std::unique_ptr<server::ExecOp>& getOperation) {
         for (auto& field: group.fields) {
             if(field.info.type == MappingInfo::Proc || field.info.type==MappingInfo::Structure)
                 continue;
-            // Q:pv:disable / Q:pv:loopback_only: leave this field at its empty/default
+            // Q:pva:access: leave this field at its empty/default
             // value rather than reading it, per-field, for this requester
             if(!fieldAccessAllowed(field, getOperation->peerName()))
                 continue;
@@ -609,14 +609,14 @@ bool putGroupField(const Value& value,
     auto leafNode = field.findIn(value);
     bool putable = field.info.putOrder!=std::numeric_limits<int64_t>::min();
     bool marked = leafNode.isMarked(true, true) && field.value;
-    // Q:pv:disable / Q:pv:loopback_only: deny writes to this field for this requester
+    // Q:pva:access: deny writes to this field for this requester
     bool allowed = fieldAccessAllowed(field, notify.peerName());
     bool changing = marked && putable && allowed;
 
     if(marked && !putable) {
         notify.logRemote(Level::Warn, SB()<<field.fieldName<<": no putorder, ignore write");
     } else if(marked && putable && !allowed) {
-        notify.logRemote(Level::Warn, SB()<<field.fieldName<<": Q:pv:disable/loopback_only, ignore write");
+        notify.logRemote(Level::Warn, SB()<<field.fieldName<<": Q:pva:access restricted, ignore write");
     }
 
     // If the field references a valid part of the given value then we can send it to the database

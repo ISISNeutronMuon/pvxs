@@ -32,18 +32,18 @@ void testQDisable()
     testDiag("%s", __func__);
     TestClient ctxt;
 
-    // No Q:pv:disable info field - record is served normally
+    // No Q:pva:access info field - record is served normally
     auto val = ctxt.get("test:normal").exec()->wait(5.0);
     testTrue(!!val) << "test:normal is served";
 
-    // Q:pv:disable=1 - record must not be served
+    // Q:pva:access="disable" - record must not be served
     testThrows<client::Timeout>([&ctxt]() {
         ctxt.get("test:disabled").exec()->wait(2.0);
     }) << "test:disabled is not served";
 
-    // Q:pv:disable=0 - treated as enabled, record is served
-    val = ctxt.get("test:enabled0").exec()->wait(5.0);
-    testTrue(!!val) << "test:enabled0 is served";
+    // Q:pva:access="enable" -- explicit form of the default, record is served
+    val = ctxt.get("test:enabled_explicit").exec()->wait(5.0);
+    testTrue(!!val) << "test:enabled_explicit is served";
 }
 
 void testQLoopbackOnly()
@@ -51,13 +51,9 @@ void testQLoopbackOnly()
     testDiag("%s", __func__);
     TestClient ctxt;
 
-    // Q:pv:loopback_only=1 -- test client always connects via loopback, so access is allowed
+    // Q:pva:access="loopback_only" -- test client always connects via loopback, so access is allowed
     auto val = ctxt.get("test:loopback_only").exec()->wait(5.0);
     testTrue(!!val) << "test:loopback_only accessible from loopback client";
-
-    // Q:pv:loopback_only=0 -- opt-out: treated as unrestricted
-    val = ctxt.get("test:loopback_enabled0").exec()->wait(5.0);
-    testTrue(!!val) << "test:loopback_enabled0 is served";
 
     // Verify the deny path directly: non-loopback addresses must be rejected
     testFalse(ioc::site::isChannelAllowed("test:loopback_only", "192.168.1.100:5076"))
@@ -69,12 +65,22 @@ void testQLoopbackOnly()
     testTrue(ioc::site::isChannelAllowed("test:loopback_only", "[::1]:5076"))
         << "loopback_only allowed for ::1";
 
+    // A dual-stack listening socket (bound to "::", the fallback whenever the
+    // usual port is taken -- verified against a real softIocPVX/pvxget run)
+    // reports an IPv4 peer as an IPv4-mapped IPv6 address. A loopback client
+    // must still be recognized as loopback in that form, not misclassified
+    // as remote.
+    testTrue(ioc::site::isChannelAllowed("test:loopback_only", "[::ffff:127.0.0.1]:5076"))
+        << "loopback_only allowed for IPv4-mapped ::ffff:127.0.0.1";
+    testFalse(ioc::site::isChannelAllowed("test:loopback_only", "[::ffff:192.168.1.100]:5076"))
+        << "loopback_only denied for IPv4-mapped ::ffff:192.168.1.100";
+
     // nullptr peer means name-list construction: loopback_only records must remain visible
     testTrue(ioc::site::isChannelAllowed("test:loopback_only", nullptr))
         << "loopback_only kept in name list (nullptr peer)";
 }
 
-// Verify that adding a Q:pv:disable / Q:pv:loopback_only record to a group
+// Verify that adding a Q:pva:access="disable"/"loopback_only" record to a group
 // still prints a warning at group-processing time (during ioc.init()), for
 // visibility even though (unlike the record's own individual PV) the group
 // now enforces these filters itself, per-field, at get/put/subscribe time.
@@ -82,19 +88,40 @@ void testGroupWarning(const std::string& err)
 {
     testDiag("%s", __func__);
     testTrue(err.find("test:grp.disabled") != std::string::npos
-             && err.find("Q:pv:disable") != std::string::npos
+             && err.find("Q:pva:access=\"disable\"") != std::string::npos
              && err.find("test:disabled") != std::string::npos)
-        << "warns when a Q:pv:disable record is added to a group";
+        << "warns when a Q:pva:access=\"disable\" record is added to a group";
     testTrue(err.find("test:grp.loopback") != std::string::npos
-             && err.find("Q:pv:loopback_only") != std::string::npos
+             && err.find("Q:pva:access=\"loopback_only\"") != std::string::npos
              && err.find("test:loopback_only") != std::string::npos)
-        << "warns when a Q:pv:loopback_only record is added to a group";
+        << "warns when a Q:pva:access=\"loopback_only\" record is added to a group";
 }
 
-// Verify that Q:pv:disable is enforced per-field within a group: the group
-// itself remains fully accessible, but the disabled field is blanked on GET,
-// rejects PUT, and is excluded from monitor updates -- rather than the whole
-// group being denied or the filter being bypassed entirely.
+// Q:pva:access is a single string field, not two independent booleans, so
+// "disable" and "loopback_only" can never both apply to the same record --
+// there is nowhere to write two conflicting values at once. Confirm the
+// other half of that design: a value that isn't "enable"/"disable"/
+// "loopback_only" (a typo, most likely) fails open to unrestricted access
+// rather than the more restrictive "disable", but is logged as a startup
+// warning (using the same stderr capture as testGroupWarning above, since
+// this warning is also printed during ioc.init()).
+void testQAccessTypo(const std::string& err)
+{
+    testDiag("%s", __func__);
+    testTrue(err.find("test:access_typo") != std::string::npos
+             && err.find("Q:pva:access") != std::string::npos
+             && err.find("loopback_ony") != std::string::npos)
+        << "warns about the unrecognized Q:pva:access value";
+
+    TestClient ctxt;
+    auto val = ctxt.get("test:access_typo").exec()->wait(5.0);
+    testTrue(!!val) << "test:access_typo (unrecognized value) is served, not disabled";
+}
+
+// Verify that Q:pva:access="disable" is enforced per-field within a group: the
+// group itself remains fully accessible, but the disabled field is blanked on
+// GET, rejects PUT, and is excluded from monitor updates -- rather than the
+// whole group being denied or the filter being bypassed entirely.
 void testGroupFiltering()
 {
     testDiag("%s", __func__);
@@ -121,7 +148,7 @@ void testGroupFiltering()
 
 MAIN(testpvfilter)
 {
-    testPlan(19);
+    testPlan(22);
     testSetup();
     pvxs::logger_config_env();
     {
@@ -134,6 +161,7 @@ MAIN(testpvfilter)
             ioc.init();
         });
         testGroupWarning(cap.err());
+        testQAccessTypo(cap.err());
 
         testQDisable();
         testQLoopbackOnly();

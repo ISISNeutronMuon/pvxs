@@ -6,8 +6,8 @@ There is a Developer section below. This file starts with guidance for users aut
 
 - **Custom Alarm Messages** (`Q:*_AMSG`) — replace the generic alarm
   status/severity a PVA client sees with a human-readable message.
-- **PV Filtering** (`Q:pv:disable`, `Q:pv:loopback_only`) — hide a record
-  from PVA entirely, or restrict it to clients on the IOC itself.
+- **PV Filtering** (`Q:pva:access`) — hide a record from PVA entirely, or
+  restrict it to clients on the IOC itself.
 
 ### Custom Alarm Messages (Q:*_AMSG)
 
@@ -78,53 +78,103 @@ Any `Q:*_AMSG` field can be changed at runtime
 with `dbPutInfoString()`; the new string is used on the next GET, no IOC
 restart needed.
 
-### PV Filtering (Q:pv:disable, Q:pv:loopback_only)
+### PV Filtering (Q:pva:access)
 
-Add one of these info fields to a record to restrict how it's exposed over
-PVA. Both are independent and read as booleans: any non-empty value other
-than the literal string `"0"` counts as set.
+Add `Q:pva:access` to a record to restrict how it's exposed over PVA. It's a
+single field with one of three values, so a record can never end up with
+two conflicting restrictions at once -- there's nowhere to write both:
 
-- `Q:pv:disable` — hide the record from PVA entirely. It won't appear in a
-  PV name list, won't answer a channel search, and can't be opened as a
-  channel. Use this for records that should stay Channel Access-only.
-- `Q:pv:loopback_only` — restrict the record to clients connecting from the
-  IOC itself (127.0.0.0/8 or `::1`). It still appears in the PV name list
-  so local tools can find it; get/put/monitor from any other host are
-  denied. Use this for records that a local diagnostic tool needs but that
-  shouldn't be reachable from the network.
+| Value | Effect |
+|---|---|
+| *(absent)* | Normal access, no restriction |
+| `"enable"` | Same as absent -- an explicit way to say "no restriction" |
+| `"disable"` | Hide the record from PVA entirely: no search response, no channel open, for any client. Use for records that should stay Channel Access-only. |
+| `"loopback_only"` | Discoverable and usable by clients connecting from the IOC itself (127.0.0.0/8 or `::1`); invisible to everyone else. A remote client's PVA search for the name is never answered, so the record doesn't just reject remote get/put/monitor -- it doesn't appear to exist at all from off the IOC. Use for records a local diagnostic tool needs but that shouldn't be reachable from the network. |
+
+Values not in the table above (probably typos) are treated as "enable" and a warning is logged at startup.
 
 ```
 record(ai, "IOC:INTERNAL_STATE") {
-    info(Q:pv:disable, "1")
+    info(Q:pva:access, "disable")
 }
 
 record(bo, "IOC:CALIBRATE_CMD") {
-    info(Q:pv:loopback_only, "1")
+    info(Q:pva:access, "loopback_only")
 }
 ```
 
-Both flags also apply per-field inside **Group PVs** (`Q:group`, see
-`groupsource.cpp`): if a group field is backed by a flagged record, that
-field alone is blanked on GET, rejects PUT, and is excluded from monitor
-updates — the rest of the group, and the group PV itself, are unaffected.
-The IOC also prints a startup warning when a flagged record is added to a
-group, so you find out at boot time rather than when a client hits it:
+#### Groups
+
+`Q:pva:access` also applies per-field inside **Group PVs** (`Q:group`, see
+`groupsource.cpp`): if a group field is backed by a restricted record, that
+field alone is left out of the GET response entirely (not sent as a
+zeroed/blank value -- omitted), rejects PUT, and is excluded from monitor
+updates for any client the restriction applies to — the rest of the group,
+and the group PV itself, are unaffected. The IOC also prints a startup
+warning when a restricted record is added to a group, so you find out at
+boot time rather than when a client hits it:
 
 ```
-record(ai, "IOC:INTERNAL_STATE") {
-    field(VAL, "0")
-    info(Q:pv:disable, "1")
+record(ai, "IOC:PRESSURE_STATUS") {
+    field(VAL, "21.5")
     info(Q:group, {
         "IOC:STATUS": {
-            "internal": {+channel:"VAL"}
+            "pressure": {+channel:"VAL"}
+        }
+    })
+}
+
+record(ai, "IOC:PRESSURE_RAW") {
+    field(VAL, "1013.2")
+    info(Q:pva:access, "loopback_only")
+    info(Q:group, {
+        "IOC:STATUS": {
+            "raw": {+channel:"VAL", +putorder:0}
         }
     })
 }
 ```
 
-Here `IOC:STATUS.internal` is always blanked and read-only over PVA, even
-though the rest of the `IOC:STATUS` group PV works normally — and the IOC
-logs a warning for this field when it starts up.
+`IOC:STATUS` isn't defined by its own `record()` block -- like any Group PV,
+it's created implicitly by collecting the `Q:group` info fields scattered
+across its member records (here, `IOC:PRESSURE_STATUS` and `IOC:PRESSURE_RAW`;
+see `documentation/qgroup.rst` and the `atomic:src` group in
+`test/testpvalink.db` for further worked examples of this same pattern).
+`+putorder` is needed for `raw` to be writable through the group at all
+-- without it, a PUT would already be rejected for an unrelated reason ("no
+putorder"), and wouldn't demonstrate `Q:pva:access` doing anything.
+
+Unlike `"disable"`, `"loopback_only"` makes `IOC:STATUS.raw` depend on who's
+asking, not a blanket restriction. Verified against a real `softIocPVX`
+running this exact `.db`, queried with `pvxget -v IOC:STATUS`:
+
+- Run **on the IOC host itself** (or anywhere else connecting via
+  127.0.0.0/8 or `::1`), `raw` comes back with its real value alongside
+  `pressure`:
+  ```
+  IOC:STATUS
+      pressure.value double = 21.5
+      ...
+      raw.value double = 1013.2
+      ...
+  ```
+- Run from **any other machine**, `pressure` is unaffected but every
+  `raw.*` field is missing from the response entirely -- not present with
+  a zeroed/blank value, just absent:
+  ```
+  IOC:STATUS
+      pressure.value double = 21.5
+      ...
+  ```
+  A PUT targeting `raw` through the group is rejected (`pvxput` gets a
+  `RemoteError`, and the IOC logs `IOC:STATUS : raw: Q:pva:access
+  restricted, ignore write`), and a remote client's monitor of `IOC:STATUS`
+  never delivers updates for `raw` specifically.
+
+Either way `IOC:STATUS` itself is served without error -- `raw` is the only
+thing that differs by peer, not whether the group PV responds at all. The
+IOC logs a startup warning for the `raw` field regardless of which value
+(`"disable"` or `"loopback_only"`) is set.
 
 ## Developer
 
@@ -147,7 +197,6 @@ and `dbentry.h`, described below.
 | `addInitHookAfterIocBuilt(fn)` | Fires at EPICS `initHookAfterIocBuilt` | Post-IOC-build setup |
 | `addNodePostProcessor(fn)` | Fires at the end of every `IOCSource::get()`; multiple may be registered | Override or augment fields in the PVA response (e.g. `alarm.message`) |
 | `addChannelFilter(fn)` | `fn(pvName, peerAddr)` returns true to allow, false to deny; multiple may be registered, all must return true | Suppress or restrict a record from being served over PVA |
-| `infoFlagSet(val)` | Inline helper, not a hook | Returns true if a boolean-style `Q:*` info field value is present, non-empty, and not the literal string `"0"` |
 
 `forEachRecord(fn)` (in `dbentry.h`, alongside the `DBEntry` wrapper it uses
 internally) calls `fn(dbCommon*)` for every record currently loaded in the
@@ -158,8 +207,9 @@ dispatch side of `addChannelFilter`/`addNodePostProcessor`: core `ioc/` code
 (`singlesource.cpp`, `iocsource.cpp`) calls these once per request rather than
 iterating registered callbacks itself. `groupsource.cpp` reuses
 `isChannelAllowed(pvName, peerAddr)` itself (via a local `fieldAccessAllowed()`
-helper) to enforce both flags per-field in Group PVs -- it is not a separate
+helper) to enforce `Q:pva:access` per-field in Group PVs -- it is not a separate
 enforcement path. `isPvDisabled(pvName)`/`isPvLoopbackOnly(pvName)` expose the
-individual flags (rather than a single allow/deny decision) purely so
-`GroupSource::GroupSource()` can print a specific startup warning when a
-flagged record is added to a group; they play no part in enforcement.
+individual `Q:pva:access` values (rather than a single allow/deny decision)
+purely so `GroupSource::GroupSource()` can print a specific startup warning
+when a restricted record is added to a group; they play no part in
+enforcement.

@@ -7,7 +7,6 @@
 #ifndef PVXS_SITEHOOKS_H
 #define PVXS_SITEHOOKS_H
 
-#include <cstring>
 #include <functional>
 #include <epicsTypes.h>
 #include <dbCommon.h>
@@ -18,14 +17,6 @@
 namespace pvxs {
 namespace ioc {
 namespace site {
-
-// --- Utility (for use by site-specific code) ---
-
-// Returns true if the value of a boolean-style "Q:*" info field represents
-// "set": present, non-empty, and not the literal string "0".
-inline bool infoFlagSet(const char* val) {
-    return val && val[0] != '\0' && std::strcmp(val, "0") != 0;
-}
 
 // --- Registration (called by site-specific code) ---
 
@@ -62,9 +53,10 @@ PVXS_IOC_API bool isChannelAllowed(const char* pvName, const char* peerAddr);
 
 void postProcessNode(dbCommon* prec, Value& node);
 
-// Returns true if pvName has Q:pv:disable / Q:pv:loopback_only set, respectively.
-// Used by GroupSource (groupsource.cpp) both to enforce these per-field within
-// a group, and to warn at group-processing time when such a record is added.
+// Returns true if pvName's Q:pva:access is "disable" / "loopback_only", respectively.
+// Used only by GroupSource (groupsource.cpp) to print a specific startup warning
+// when such a record is added to a group -- per-field enforcement within a group
+// goes through isChannelAllowed() above instead, like SingleSource's does.
 bool isPvDisabled(const char* pvName);
 bool isPvLoopbackOnly(const char* pvName);
 
