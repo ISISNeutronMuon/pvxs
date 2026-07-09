@@ -21,6 +21,7 @@ namespace site {
 
 // Forward declarations: each extension's registrar, defined in its own .cpp.
 void registerAlarmmsg();
+
 void registerPvfilter();
 
 namespace {
