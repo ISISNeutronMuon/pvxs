@@ -174,20 +174,20 @@ index 024f676..b10e269 100644
              pv.claim();
              log_debug_printf(_logname, "Claiming '%s'\n", pv.name());
 diff --git a/ioc/sitehooks.cpp b/ioc/sitehooks.cpp
-index 4bd833f..d285359 100644
+index 9855e11..ee6c614 100644
 --- a/ioc/sitehooks.cpp
 +++ b/ioc/sitehooks.cpp
-@@ -18,3 +18,5 @@ namespace pvxs {
+@@ -22,3 +22,5 @@ namespace pvxs {
 +void registerPvfilter();
 +
  namespace {
  // Function-local static variables avoid init-order issues with site-specific registrars.
  std::vector<std::function<void()>>& hooksAtBeginning() {
-@@ -47,3 +49,4 @@ void siteHookDispatch(initHookState state) noexcept
+@@ -57,3 +59,4 @@ void siteHookDispatch(initHookState state) noexcept
 +    registerPvfilter();
      initHookRegister(siteHookDispatch);
- }
  
+     // If a site extension registered a replacement for the core-registered
 diff --git a/setup.py b/setup.py
 index 52000fe..6710e42 100755
 --- a/setup.py

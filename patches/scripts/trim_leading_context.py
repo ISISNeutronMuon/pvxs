@@ -74,4 +74,9 @@ def process(text):
 
 
 if __name__ == '__main__':
+    # Force LF on stdout regardless of platform -- on Windows, the default
+    # text-mode stdout translates '\n' to '\r\n', which would leave
+    # patches/*.patch with CRLF line endings that don't match the
+    # LF-normalized source tree git apply expects.
+    sys.stdout.reconfigure(newline='\n')
     sys.stdout.write(process(sys.stdin.read()))

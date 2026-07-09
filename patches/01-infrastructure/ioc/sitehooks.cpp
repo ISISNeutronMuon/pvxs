@@ -4,10 +4,14 @@
  * in file LICENSE that is included with this distribution.
  */
 
+#include <memory>
 #include <vector>
 #include <functional>
 
 #include <initHooks.h>
+#include <cantProceed.h>
+
+#include <pvxs/server.h>
 
 #include "sitehooks.h"
 
@@ -33,6 +37,12 @@ std::vector<std::function<bool(const char*, const char*)>>& channelFilters() {
     static std::vector<std::function<bool(const char*, const char*)>> v;
     return v;
 }
+// Singleton, unlike the vectors above: only one "server" source can be
+// installed. See setServerSourceFactory()'s doc comment (sitehooks.h).
+std::function<std::shared_ptr<server::Source>()>& serverSourceFactory() {
+    static std::function<std::shared_ptr<server::Source>()> fn;
+    return fn;
+}
 void siteHookDispatch(initHookState state) noexcept
 {
     if (state == initHookAtBeginning)
@@ -45,6 +55,23 @@ void siteHookDispatch(initHookState state) noexcept
 void registerHooks()
 {
     initHookRegister(siteHookDispatch);
+
+    // If a site extension registered a replacement for the core-registered
+    // "__server" source (src/serversource.cpp) -- eg. so its "channels" RPC
+    // enumeration can apply per-peer filtering that core's Source::onList()
+    // has no peer context to do -- install it in the same registry slot.
+    if (auto& factory = serverSourceFactory()) {
+        auto srv = server();
+        // A future core pvxs version could rename/reorder this slot, in which
+        // case removeSource() would silently find nothing and both the (now
+        // unfiltered) core source and our replacement would end up installed
+        // side by side -- abort loudly rather than let peer filtering
+        // silently not apply.
+        if (!srv.removeSource("__server", -1))
+            cantProceed("registerHooks: core \"__server\" source not found; "
+                        "can't install peer-filtered replacement\n");
+        srv.addSource("__server", factory(), -1);
+    }
 }
 
 /**
@@ -87,6 +114,11 @@ void addNodePostProcessor(std::function<void(dbCommon*, Value&)> fn)
 void addChannelFilter(std::function<bool(const char* pvName, const char* peerAddr)> fn)
 {
     channelFilters().push_back(std::move(fn));
+}
+
+void setServerSourceFactory(std::function<std::shared_ptr<server::Source>()> fn)
+{
+    serverSourceFactory() = std::move(fn);
 }
 
 bool isChannelAllowed(const char* pvName, const char* peerAddr)
