@@ -1,0 +1,29 @@
+name: Sync upstream master
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    if: github.repository == 'ISISNeutronMuon/pvxs'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: master
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/epics-base/pvxs.git
+          git fetch upstream master --tags
+
+      - name: Fast-forward master
+        run: git merge --ff-only upstream/master
+
+      - name: Push to origin
+        run: |
+          git push origin master
+          git push origin --tags
