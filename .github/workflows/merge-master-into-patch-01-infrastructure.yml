@@ -1,0 +1,30 @@
+name: Merge master into patch-01-infrastructure
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: patch-01-infrastructure
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_PAT }}
+
+      - name: Attempt merge from master
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin master
+          if ! git merge --no-edit origin/master; then
+            git merge --abort
+            echo "::error::Merge conflict between master and patch-01-infrastructure — manual resolution needed."
+            exit 1
+          fi
+
+      - name: Push
+        run: git push origin patch-01-infrastructure
