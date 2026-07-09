@@ -8,11 +8,12 @@
 #define PVXS_SITEHOOKS_H
 
 #include <functional>
-#include <epicsTypes.h>
+#include <memory>
 #include <dbCommon.h>
 
 #include <pvxs/data.h>
 #include <pvxs/iochooks.h>
+#include <pvxs/server.h>
 
 namespace pvxs {
 namespace ioc {
@@ -38,6 +39,14 @@ void addNodePostProcessor(std::function<void(dbCommon*, Value&)> fn);
 // so that the record remains in the name list.
 // Multiple callbacks may be registered; all must return true for the channel to be allowed.
 void addChannelFilter(std::function<bool(const char* pvName, const char* peerAddr)> fn);
+
+// Register the factory used to build a replacement for the core-registered
+// "server" PV source (see registerHooks() in sitehooks.cpp for why one is
+// needed). Unlike the addXxx() registrations above, there is only one
+// "server" source slot to fill, so this is a singleton setter, not a list:
+// a later call replaces any previously registered factory. If none is ever
+// registered, the core-provided "server" source is left in place unchanged.
+void setServerSourceFactory(std::function<std::shared_ptr<server::Source>()> fn);
 
 // --- Called once from pvxsBaseRegistrar ---
 void registerHooks();
