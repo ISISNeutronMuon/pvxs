@@ -4,6 +4,8 @@
  * in file LICENSE that is included with this distribution.
  */
 
+#include <algorithm>
+
 #include <testMain.h>
 #include <dbAccess.h>
 #include <dbUnitTest.h>
@@ -12,6 +14,7 @@
 #include <pvxs/log.h>
 #include <pvxs/client.h>
 #include <pvxs/server.h>
+#include <pvxs/nt.h>
 #include <pvxs/unittest.h>
 #include <pvxs/iochooks.h>
 
@@ -78,6 +81,44 @@ void testQLoopbackOnly()
     // nullptr peer means name-list construction: loopback_only records must remain visible
     testTrue(ioc::site::isChannelAllowed("test:loopback_only", nullptr))
         << "loopback_only kept in name list (nullptr peer)";
+}
+
+// Fixed: Source::onList() (include/pvxs/source.h) still takes no peer argument, so
+// core pvxs's own "channels" RPC handler (src/serversource.cpp) still can't filter
+// per-peer. Instead, ioc/pvfilter.cpp's ServerListFilterSource replaces the
+// core-registered "server" source entirely (installed by ioc/sitehooks.cpp's
+// registerHooks() via the new setServerSourceFactory() hook), merges all sources'
+// onList() results itself, and applies isChannelAllowed() using the real requesting
+// peer's address (eop->peerName()) before replying -- so pvxlist's enumeration is
+// now filtered the same way onSearch()/onCreate() already were.
+//
+// TestClient always connects over loopback (testioc.h's TestClient uses
+// pvxs::ioc::server().clientConfig(), built against Config::isolated()), so this
+// test can only exercise the "allowed" side of the fix end-to-end through the real
+// RPC: a loopback_only record must still be visible to a loopback requester's
+// 'channels' enumeration. The "denied for a non-loopback requester" side of the
+// same filter function is covered directly by testQLoopbackOnly()'s
+// isChannelAllowed() assertions above, since this harness has no way to make a
+// TestClient appear as a non-loopback peer.
+void testQLoopbackOnlyVisibleInEnumeration()
+{
+    testDiag("%s", __func__);
+    TestClient ctxt;
+
+    // The "server" PV doesn't respond to search (ServerSource::onSearch() is a
+    // no-op by design), so it can only be reached by addressing it directly.
+    std::string servaddr = "127.0.0.1:" + std::to_string(ioc::server().config().tcp_port);
+
+    using namespace pvxs::members;
+    auto uri(nt::NTURI({String("op")}));
+    auto result(ctxt.rpc("server", uri.call("channels")).server(servaddr).exec()->wait(5.0));
+
+    auto channels = result["value"].as<shared_array<const std::string>>();
+    bool found = std::find(channels.begin(), channels.end(), "test:loopback_only") != channels.end();
+
+    testTrue(found)
+        << "test:loopback_only remains visible in the 'channels' RPC enumeration "
+           "for a loopback requester now that the filter is wired end-to-end";
 }
 
 // Verify that adding a Q:pva:access="disable"/"loopback_only" record to a group
@@ -148,7 +189,7 @@ void testGroupFiltering()
 
 MAIN(testpvfilter)
 {
-    testPlan(22);
+    testPlan(23);
     testSetup();
     pvxs::logger_config_env();
     {
@@ -165,6 +206,7 @@ MAIN(testpvfilter)
 
         testQDisable();
         testQLoopbackOnly();
+        testQLoopbackOnlyVisibleInEnumeration();
         testGroupFiltering();
     }
     epicsExitCallAtExits();

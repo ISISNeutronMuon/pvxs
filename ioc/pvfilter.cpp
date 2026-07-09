@@ -42,6 +42,16 @@
  * monitor updates within an otherwise-still-served group; the
  * rest of the group and the group PV itself are unaffected.
  *
+ * ServerListFilterSource below applies the same isChannelAllowed() decision
+ * to a third path: the "server" PV's "channels" RPC (what pvxlist <ip:port>
+ * enumerates), which core pvxs's Source::onList() has no peer address to
+ * filter by. makeServerListFilterSource() is installed by
+ * ioc/sitehooks.cpp's registerHooks() in place of the core-registered
+ * "server" source; it isn't pvfilter-specific (it enforces whatever the
+ * combined isChannelAllowed() chain says, not just this file's own filter),
+ * but lives here because this is where the record-name policy it reads is
+ * defined and because touching core pvxs (src/) is avoided.
+ *
  * isPvDisabled()/isPvLoopbackOnly() below expose the individual flags
  * (rather than a single allow/deny decision) purely so
  * GroupSource::GroupSource() (groupsource.cpp) can print a specific startup
@@ -51,8 +61,14 @@
  */
 
 #include <cstring>
+#include <memory>
+#include <set>
 #include <unordered_map>
 #include <string>
+
+#include <pvxs/nt.h>
+#include <pvxs/source.h>
+#include <pvxs/version.h>
 
 // Use platform socket headers and inet_pton() directly rather than pvxs::SockAddr
 // (src/osiSockExt.h). SockAddr's parser falls back to a synchronous DNS lookup
@@ -150,6 +166,95 @@ bool isLoopbackAddr(const char* peerAddr)
     }
 }
 
+// Re-implements the built-in "server" PV (normally src/serversource.cpp, core
+// pvxs) so its "channels" RPC -- what pvxlist <ip:port> drives -- can apply
+// the same Q:pva:access filtering as onSearch()/onCreate(), using the real
+// requesting peer's address. core pvxs's Source::onList() (include/pvxs/
+// source.h) has no peer argument, so core's own "channels" handler can't do
+// this per-source; replacing the whole source here, entirely within the
+// ioc/ site-extension layer and its public pvxs::server::Server API
+// (removeSource()/addSource()/listSource()/getSource()), avoids having to
+// change core pvxs at all.
+//
+// Installed by ioc/sitehooks.cpp's registerHooks() in place of the
+// core-registered "__server" source, at the same (name, order) registry
+// slot, so pvxlist/pvinfo see no difference except that disabled/
+// loopback_only names are now correctly excluded from a non-loopback
+// requester's enumeration.
+struct ServerListFilterSource : public pvxs::server::Source
+{
+    const pvxs::Value info = pvxs::TypeDef(pvxs::TypeCode::Struct, {
+                                    pvxs::Member(pvxs::TypeCode::String, "implLang"),
+                                    pvxs::Member(pvxs::TypeCode::String, "version"),
+                                }).create();
+
+    void onSearch(Search&) override {
+        // "server" is not advertised via search, matching core's ServerSource.
+    }
+
+    void onCreate(std::unique_ptr<pvxs::server::ChannelControl>&& op) override {
+        if (op->name() != "server")
+            return;
+
+        op->onRPC([this](std::unique_ptr<pvxs::server::ExecOp>&& eop, pvxs::Value&& raw) {
+            auto args = std::move(raw);
+
+            if (auto Q = args["query"]) // NTURI
+                args = Q;
+
+            if (args["help"].valid()) {
+                auto ret = pvxs::nt::NTScalar{pvxs::TypeCode::String}.create();
+                ret["value"] = "Help, I really should write some help";
+                eop->reply(ret);
+                return;
+            }
+
+            auto reqOp = args["op"].as<std::string>();
+
+            if (reqOp == "channels") {
+                std::set<std::string> names;
+                {
+                    auto srv = pvxs::ioc::server();
+                    for (auto& pair : srv.listSource()) {
+                        auto src = srv.getSource(pair.first, pair.second);
+                        if (!src)
+                            continue;
+                        auto list = src->onList();
+                        if (list.names) {
+                            for (auto& nm : *list.names)
+                                names.insert(nm);
+                        }
+                    }
+                }
+
+                auto& peerName = eop->peerName();
+                for (auto it = names.begin(); it != names.end(); ) {
+                    if (pvxs::ioc::site::isChannelAllowed(it->c_str(), peerName.c_str()))
+                        ++it;
+                    else
+                        it = names.erase(it);
+                }
+
+                pvxs::shared_array<std::string> lnames(names.begin(), names.end());
+
+                auto ret = pvxs::nt::NTScalar{pvxs::TypeCode::StringA}.create();
+                ret["value"] = lnames.freeze().castTo<const void>();
+                eop->reply(ret);
+                return;
+
+            } else if (reqOp == "info") {
+                auto ret = info.cloneEmpty();
+                ret["implLang"] = "cpp";
+                ret["version"] = pvxs::version_str();
+                eop->reply(ret);
+                return;
+            }
+
+            eop->error("Not implemented");
+        });
+    }
+};
+
 } // namespace
 
 namespace pvxs { namespace ioc { namespace site {
@@ -179,6 +284,9 @@ void registerPvfilter() {
         if (it->second == Access::LoopbackOnly && peerAddr && !isLoopbackAddr(peerAddr))
             return false;
         return true;
+    });
+    setServerSourceFactory([]() -> std::shared_ptr<server::Source> {
+        return std::make_shared<ServerListFilterSource>();
     });
 }
 }}} // pvxs::ioc::site
