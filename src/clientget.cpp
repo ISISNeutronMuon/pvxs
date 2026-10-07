@@ -184,11 +184,11 @@ struct GPROp : public OperationBase
         (void)loop.tryCall([&, this](){
             ret = _cancel(false);
             if(!builder_busy)
-                junkB = std::move(builder);
+                junkB.swap(builder);
             if(!done_busy)
-                junkD = std::move(done);
+                junkD.swap(done);
             if(!onInit_busy)
-                junkI = std::move(onInit);
+                junkI.swap(onInit);
             // leave opByIOID for GC
         });
         return ret;
@@ -289,11 +289,13 @@ struct GPROp : public OperationBase
 
         // transient state (because builder callback is synchronous)
         if(state==GPROp::BuildPut) {
-            temp = arg.clone();
 
             builder_busy = true;
             try {
-                temp = builder(std::move(temp));
+                if(builder)
+                    temp = builder(arg.clone());
+                else
+                    temp = arg.cloneEmpty();
                 state = GPROp::Exec;
 
             } catch(std::exception& e) {
