@@ -379,7 +379,7 @@ struct ServerMonitorControl : public server::MonitorControlOp
 };
 DEFINE_INST_COUNTER(ServerMonitorControl);
 
-struct ServerMonitorSetup : public server::MonitorSetupOp
+struct ServerMonitorSetup final : public server::MonitorSetupOp
 {
     ServerMonitorSetup(ServerConn* conn,
                      const std::weak_ptr<server::Server::Pvt>& server,
@@ -444,8 +444,10 @@ struct ServerMonitorSetup : public server::MonitorSetupOp
         if(!serv)
             return;
         serv->acceptor_loop.call([this, &fn](){
-            if(auto oper = op.lock())
-                oper->onClose = std::move(fn);
+            if(auto oper = op.lock()) {
+                if(oper->state != ServerOp::Dead)
+                    oper->onClose = std::move(fn);
+            }
         });
     }
 
@@ -589,7 +591,13 @@ void ServerConn::handle_MONITOR()
                    std::string(SB()<<pvRequest).c_str());
 
         if(chan->onSubscribe) {
-            chan->onSubscribe(std::move(ctrl));
+            try {
+                chan->onSubscribe(std::move(ctrl));
+            }catch(std::exception& e){
+                // a remote error will be signaled from ~ServerMonitorSetup
+                log_err_printf(connsetup, "Client %s Monitor \"%s\" onSubscribe() error: %s\n",
+                               peerName.c_str(), chan->name.c_str(), e.what());
+            }
         } else {
             ctrl->error("Monitor operation not implemented by this PV");
         }
@@ -679,8 +687,14 @@ void ServerConn::handle_MONITOR()
                 op->state = start ? ServerOp::Executing : ServerOp::Idle;
             }
 
-            if(op->onStart)
-                op->onStart(start);
+            if(op->onStart) {
+                try {
+                    op->onStart(start);
+                }catch(std::exception& e){
+                    log_err_printf(connsetup, "Client %s IOID %u \"%s\" onStart() error: %s\n",
+                                   peerName.c_str(), unsigned(ioid), chan->name.c_str(), e.what());
+                }
+            }
 
             {
                 Guard G(op->lock);
