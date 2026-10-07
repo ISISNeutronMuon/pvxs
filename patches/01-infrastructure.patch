@@ -25,21 +25,21 @@ index ca26912..bb214b2 100644
  } // pvxs
  #endif //PVXS_DBENTRY_H
 diff --git a/ioc/iochooks.cpp b/ioc/iochooks.cpp
-index ae0455d..243dbba 100644
+index 6e35893..84bd21e 100644
 --- a/ioc/iochooks.cpp
 +++ b/ioc/iochooks.cpp
-@@ -33,3 +33,4 @@
+@@ -36,3 +36,4 @@
 +#include "sitehooks.h"
  #include "iocshcommand.h"
  #include "utilpvt.h"
  #include "qsrvpvt.h"
-@@ -491,3 +492,4 @@ void pvxsBaseRegistrar() noexcept {
+@@ -502,3 +503,4 @@ void pvxsBaseRegistrar() noexcept {
 +        site::registerHooks();
  
          if(enableQ) {
              single_enable();
 diff --git a/ioc/iocsource.cpp b/ioc/iocsource.cpp
-index 0d1a35e..0eab4ec 100644
+index 85ff27c..fb833f4 100644
 --- a/ioc/iocsource.cpp
 +++ b/ioc/iocsource.cpp
 @@ -22,3 +22,4 @@
@@ -54,10 +54,10 @@ index 0d1a35e..0eab4ec 100644
  
  /**
 diff --git a/setup.py b/setup.py
-index 26699b4..52000fe 100755
+index e99e1fe..0393f88 100755
 --- a/setup.py
 +++ b/setup.py
-@@ -577,3 +577,4 @@ def define_DSOS(self):
+@@ -579,3 +579,4 @@ def define_DSOS(self):
 +        "ioc/sitehooks.cpp",
          "ioc/field.cpp",
          "ioc/fielddefinition.cpp",
